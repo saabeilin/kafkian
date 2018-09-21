@@ -2,8 +2,10 @@ import socket
 from typing import Callable
 
 import structlog
-from confluent_kafka import Consumer as ConfluentConsumer
-from confluent_kafka import KafkaException
+from confluent_kafka.cimpl import Consumer as ConfluentConsumer
+from confluent_kafka.cimpl import KafkaException
+
+from kafkian.serde.deserialization import Deserializer
 
 logger = structlog.get_logger(__name__)
 
@@ -28,8 +30,7 @@ class Consumer:
     def __init__(
         self, config,
             value_serializer=Deserializer(), key_serializer=Deserializer(),
-            get_message: Callable = get_message,
-        error_handler: Callable = default_error_handler
+            error_handler: Callable = None
     ) -> None:
         stop_on_eof = config.pop('stop_on_eof', False)
         poll_timeout = config.pop('poll_timeout', 0.1)

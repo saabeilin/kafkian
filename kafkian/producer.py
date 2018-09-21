@@ -2,9 +2,9 @@ import atexit
 import socket
 
 import structlog
-from confluent_kafka import Producer as ConfluentProducer
+from confluent_kafka.cimpl import Producer as ConfluentProducer
 
-from .serialization import Serializer
+from kafkian.serde.serialization import Serializer
 
 
 logger = structlog.get_logger(__name__)
