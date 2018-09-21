@@ -1,8 +1,9 @@
 import socket
+import typing
 from typing import Callable
 
 import structlog
-from confluent_kafka.cimpl import Consumer as ConfluentConsumer
+from confluent_kafka.cimpl import Consumer as ConfluentConsumer, KafkaError
 from confluent_kafka.cimpl import KafkaException
 
 from kafkian.serde.deserialization import Deserializer
@@ -28,32 +29,43 @@ class Consumer:
     }
 
     def __init__(
-        self, config,
+        self, config: typing.Dict, topics: typing.Iterable,
             value_serializer=Deserializer(), key_serializer=Deserializer(),
             error_handler: Callable = None
     ) -> None:
-        stop_on_eof = config.pop('stop_on_eof', False)
-        poll_timeout = config.pop('poll_timeout', 0.1)
-        self.non_blocking = config.pop('non_blocking', False)
-        self.topics = self._get_topics(self.config)
-
-        logger.info("Initializing consumer", config=self.config)
-        self._consumer_impl = ConfluentConsumer(self.config)
+        # stop_on_eof = config.pop('stop_on_eof', False)
+        # poll_timeout = config.pop('poll_timeout', 0.1)
+        self._subscribed = False
+        self.topics = list(topics)
+        self.non_blocking = False   # TODO
+        self.timeout = 0.1          # TODO
+        logger.info("Initializing consumer", config=config)
+        self._consumer_impl = ConfluentConsumer(config)
         self._generator = self._message_generator()
 
-    def __getattr__(self, name):
-        return getattr(self.consumer, name)
+    def _subscribe(self):
+        if self._subscribed:
+            return
+        print(f"Subscribing to {self.topics}")
+        self._consumer_impl.subscribe(self.topics)
+        self._subscribed = True
+
+    #
+    # def __getattr__(self, name):
+    #     return getattr(self.consumer, name)
 
     def __iter__(self):
         return self
 
     def __next__(self):
+        self._subscribe()
         try:
             return next(self._generator)
         except KafkaException:
             raise StopIteration
 
     def __enter__(self):
+        print(f"Subscribing to {self.topics}")
         self._consumer_impl.subscribe(self.topics)
         return self
 
@@ -75,16 +87,9 @@ class Consumer:
                 if self.non_blocking:
                     yield None
                 continue
-            yield Message(message)
-
-    def _get_topics(self, config):
-        topics = config.pop('topics', None)
-        assert topics is not None, "You must subscribe to at least one topic"
-
-        if not isinstance(topics, list):
-            topics = [topics]
-
-        return topics
+            if message.error() == KafkaError._PARTITION_EOF:
+                continue
+            yield message
 
     @property
     def is_auto_commit(self):

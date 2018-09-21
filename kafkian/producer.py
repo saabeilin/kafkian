@@ -55,15 +55,16 @@ class Producer:
             self._producer_impl.flush()
 
     def poll(self, timeout=None):
-        if timeout:
-            return self._producer_impl.poll(timeout)
-        else:
-            return self._producer_impl.poll()
+        timeout = timeout or 1
+        return self._producer_impl.poll(timeout)
 
-    def produce(self, topic, key, value):
+    def produce(self, topic, key, value, sync=False):
         value = self.value_serializer.serialize(value, topic)
         key = self.key_serializer.serialize(key, topic, is_key=True)
         self._produce(topic, key, value)
+        if sync:
+            while self.poll() == 0:
+                continue
 
     def _produce(self, topic, key, value, **kwargs):
         self._producer_impl.produce(topic=topic, value=value, key=key, **kwargs)
