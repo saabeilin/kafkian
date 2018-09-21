@@ -23,20 +23,18 @@ class Serializer:
 
 
 class AvroSerializer(Serializer):
-    DEFAULT_CONFIG = {
-        'auto.register.schemas': False,
-        'key.subject.name.strategy': SubjectNameStrategy.TopicNameStrategy,
-        'value.subject.name.strategy': SubjectNameStrategy.TopicNameStrategy
-    }
-
-    def __init__(self, config, **kwargs):
-        super().__init__(config, **kwargs)
-        config = {**self.DEFAULT_CONFIG, **config}
-        schema_registry_url = config['schema.registry.url']
+    def __init__(self,
+                 schema_registry_url: str,
+                 auto_register_schemas: bool = True,
+                 key_subject_name_strategy: SubjectNameStrategy = SubjectNameStrategy.TopicNameStrategy,
+                 value_subject_name_strategy: SubjectNameStrategy = SubjectNameStrategy.TopicRecordNameStrategy,
+                 **kwargs):
+        super().__init__(**kwargs)
+        schema_registry_url = schema_registry_url
         self.schema_registry = CachedSchemaRegistryClient(schema_registry_url)
-        self.auto_register_schemas = config['auto.register.schemas']
-        self.key_subject_name_strategy = config['key.subject.name.strategy']
-        self.value_subject_name_strategy = config['value.subject.name.strategy']
+        self.auto_register_schemas = auto_register_schemas
+        self.key_subject_name_strategy = key_subject_name_strategy
+        self.value_subject_name_strategy = value_subject_name_strategy
         self._serializer_impl = MessageSerializer(self.schema_registry)
 
     def _get_subject(self, topic, schema, strategy, is_key=False):

@@ -40,8 +40,12 @@ class Consumer:
         self.non_blocking = False   # TODO
         self.timeout = 0.1          # TODO
         logger.info("Initializing consumer", config=config)
-        self._consumer_impl = ConfluentConsumer(config)
+        self._consumer_impl = self._init_consumer_impl(config)
         self._generator = self._message_generator()
+
+    @staticmethod
+    def _init_consumer_impl(config):
+        return ConfluentConsumer(config)
 
     def _subscribe(self):
         if self._subscribed:
