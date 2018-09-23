@@ -1,3 +1,5 @@
+from confluent_kafka.avro import CachedSchemaRegistryClient, MessageSerializer
+
 
 class Deserializer:
     """
@@ -9,3 +11,13 @@ class Deserializer:
 
     def deserialize(self, value, **kwargs):
         return value
+
+
+class AvroDeserializer(Deserializer):
+    def __init__(self, schema_registry_url: str, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.schema_registry = CachedSchemaRegistryClient(schema_registry_url)
+        self._serializer_impl = MessageSerializer(self.schema_registry)
+
+    def deserialize(self, value, **kwargs):
+        return self._serializer_impl.decode_message(value)
