@@ -30,13 +30,15 @@ class Consumer:
 
     def __init__(
         self, config: typing.Dict, topics: typing.Iterable,
-            value_serializer=Deserializer(), key_serializer=Deserializer(),
+            value_deserializer=Deserializer(), key_deserializer=Deserializer(),
             error_handler: Callable = None
     ) -> None:
         self._subscribed = False
         self.topics = list(topics)
         self.non_blocking = False   # TODO
         self.timeout = 0.1          # TODO
+        self.key_deserializer = key_deserializer
+        self.value_deserializer = value_deserializer
         logger.info("Initializing consumer", config=config)
         self._consumer_impl = self._init_consumer_impl(config)
         self._generator = self._message_generator()
@@ -85,7 +87,12 @@ class Consumer:
                 continue
             if message.error() == KafkaError._PARTITION_EOF:
                 continue
-            yield message
+            yield self._deserialize(message)
+
+    def _deserialize(self, message):
+        message.set_key(self.key_deserializer.deserialize(message.key()))
+        message.set_value(self.key_deserializer.deserialize(message.value()))
+        return message
 
     @property
     def is_auto_commit(self):
