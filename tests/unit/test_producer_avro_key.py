@@ -2,10 +2,9 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
-from avro.schema import Schema
-from confluent_kafka import avro
 
-from kafkian import producer, AvroSerializer, Serializer, AvroStringKeySerializer
+from kafkian import producer
+from kafkian.serde.serialization import Serializer, AvroStringKeySerializer
 from tests.unit.conftest import producer_produce_mock
 
 KAFKA_BOOTSTRAP_SERVERS = 'localhost:29092'
@@ -39,6 +38,7 @@ def test_producer_init(avro_producer):
         avro_producer.value_serializer,
         Serializer
     )
+
 
 @patch(
     'confluent_kafka.avro.CachedSchemaRegistryClient.register',

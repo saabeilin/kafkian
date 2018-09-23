@@ -2,10 +2,10 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 import pytest
-from avro.schema import Schema
 from confluent_kafka import avro
 
-from kafkian import producer, AvroSerializer, Serializer
+from kafkian import producer
+from kafkian.serde.serialization import AvroSerializer, Serializer
 from tests.unit.conftest import producer_produce_mock
 
 KAFKA_BOOTSTRAP_SERVERS = 'localhost:29092'
@@ -19,7 +19,7 @@ PRODUCER_CONFIG = {
 
 
 class Message(dict):
-    _schema: Schema = None
+    _schema = None
 
 
 message = Message({

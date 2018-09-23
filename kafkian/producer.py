@@ -6,7 +6,6 @@ from confluent_kafka.cimpl import Producer as ConfluentProducer
 
 from kafkian.serde.serialization import Serializer
 
-
 logger = structlog.get_logger(__name__)
 
 
@@ -63,8 +62,7 @@ class Producer:
         key = self.key_serializer.serialize(key, topic, is_key=True)
         self._produce(topic, key, value)
         if sync:
-            while self.poll() == 0:
-                continue
+            self.flush()
 
     def _produce(self, topic, key, value, **kwargs):
         self._producer_impl.produce(topic=topic, value=value, key=key, **kwargs)

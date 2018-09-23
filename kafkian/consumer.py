@@ -33,8 +33,6 @@ class Consumer:
             value_serializer=Deserializer(), key_serializer=Deserializer(),
             error_handler: Callable = None
     ) -> None:
-        # stop_on_eof = config.pop('stop_on_eof', False)
-        # poll_timeout = config.pop('poll_timeout', 0.1)
         self._subscribed = False
         self.topics = list(topics)
         self.non_blocking = False   # TODO
@@ -50,13 +48,8 @@ class Consumer:
     def _subscribe(self):
         if self._subscribed:
             return
-        print(f"Subscribing to {self.topics}")
         self._consumer_impl.subscribe(self.topics)
         self._subscribed = True
-
-    #
-    # def __getattr__(self, name):
-    #     return getattr(self.consumer, name)
 
     def __iter__(self):
         return self
@@ -69,7 +62,6 @@ class Consumer:
             raise StopIteration
 
     def __enter__(self):
-        print(f"Subscribing to {self.topics}")
         self._consumer_impl.subscribe(self.topics)
         return self
 

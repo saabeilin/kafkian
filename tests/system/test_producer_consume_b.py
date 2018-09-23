@@ -4,10 +4,9 @@ import pytest
 
 from kafkian import Producer, Consumer
 
-KAFKA_BOOTSTRAP_SERVERS='localhost:29092'
-SCHEMA_REGISTRY_URL='https://localhost:28081'
-TEST_TOPIC='test.test.' + str(uuid.uuid4())
-
+KAFKA_BOOTSTRAP_SERVERS = 'localhost:29092'
+SCHEMA_REGISTRY_URL = 'https://localhost:28081'
+TEST_TOPIC = 'test.test.' + str(uuid.uuid4())
 
 CONSUMER_CONFIG = {
     'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
@@ -16,7 +15,6 @@ CONSUMER_CONFIG = {
     },
     'group.id': str(uuid.uuid4())
 }
-
 
 PRODUCER_CONFIG = {
     'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
