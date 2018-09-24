@@ -44,7 +44,7 @@ producer = Producer(
     },
     key_serializer=AvroStringKeySerializer(schema_registry_url=config.SCHEMA_REGISTRY_URL),
     value_serializer=AvroSerializer(schema_registry_url=config.SCHEMA_REGISTRY_URL,
-                                    value_subject_name_strategy=SubjectNameStrategy.RecordNameStrategy)
+                                    subject_name_strategy=SubjectNameStrategy.RecordNameStrategy)
 )
 
 ```
