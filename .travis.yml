@@ -1,6 +1,6 @@
 sudo: false
 language: python
-install: pip install tox-travis
+install: pip install tox-travis codecov
 script: tox
 matrix:
   include:
@@ -9,3 +9,5 @@ matrix:
     - python: 3.7
       dist: xenial
       sudo: true
+after_success:
+  - codecov
