@@ -1,0 +1,9 @@
+coverage:
+  parsers:
+    python
+  status:
+    project:
+      default:
+        target: "80%"
+    patch:
+      enabled: false
