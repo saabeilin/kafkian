@@ -76,7 +76,7 @@ class Consumer:
         #  - commit offsets (only on auto commit)
         #  - leave consumer group
         logger.info("Closing consumer")
-        self.consumer.close()
+        self._consumer_impl.close()
 
     def _message_generator(self):
         while True:
@@ -94,6 +94,5 @@ class Consumer:
         message.set_value(self.key_deserializer.deserialize(message.value()))
         return message
 
-    @property
-    def is_auto_commit(self):
-        return self.config.get('enable.auto.commit', True)
+    def commit(self, sync=False):
+        self._consumer_impl.commit(asynchronous=not sync)
