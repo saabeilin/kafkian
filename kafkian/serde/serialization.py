@@ -1,7 +1,9 @@
 from enum import Enum
 
 from confluent_kafka import avro
-from confluent_kafka.avro import CachedSchemaRegistryClient, MessageSerializer
+from confluent_kafka.avro import CachedSchemaRegistryClient
+
+from .avroserdebase import AvroSerDeBase
 
 
 class SubjectNameStrategy(Enum):
@@ -33,7 +35,7 @@ class AvroSerializer(Serializer):
         self.schema_registry = CachedSchemaRegistryClient(schema_registry_url)
         self.auto_register_schemas = auto_register_schemas
         self.subject_name_strategy = subject_name_strategy
-        self._serializer_impl = MessageSerializer(self.schema_registry)
+        self._serializer_impl = AvroSerDeBase(self.schema_registry)
 
     def _get_subject(self, topic, schema, is_key=False):
         if self.subject_name_strategy == SubjectNameStrategy.TopicNameStrategy:
