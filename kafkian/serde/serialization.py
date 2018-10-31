@@ -37,15 +37,13 @@ class AvroSerializer(Serializer):
 
     def _get_subject(self, topic, schema, is_key=False):
         if self.subject_name_strategy == SubjectNameStrategy.TopicNameStrategy:
-            subject = topic
+            subject = topic + ('-key' if is_key else '-value')
         elif self.subject_name_strategy == SubjectNameStrategy.RecordNameStrategy:
             subject = schema.fullname
         elif self.subject_name_strategy == SubjectNameStrategy.TopicRecordNameStrategy:
             subject = '{}-{}'.format(topic, schema.fullname)
         else:
             raise ValueError('Unknown SubjectNameStrategy')
-
-        subject += '-key' if is_key else '-value'
         return subject
 
     def _ensure_schema(self, topic, schema, is_key=False):
