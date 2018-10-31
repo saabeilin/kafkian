@@ -12,6 +12,7 @@ class HasSchemaMixin:
     """
     A mixing for decoded Avro record to make able to add schema attribute
     """
+    @property
     def schema(self):
         """
         :return: Avro schema for used to decode this entity
@@ -30,8 +31,7 @@ def _wrap(value, schema):
     if hasattr(schema, 'fullname'):
         name = schema.fullname
     elif hasattr(schema, 'namespace'):
-        name = "{namespace}.{name}".format(namespace=schema.namespace,
-                                           name=schema.name)
+        name = "{namespace}.{name}".format(namespace=schema.namespace, name=schema.name)
     elif hasattr(schema, 'name'):
         name = schema.name
     else:
