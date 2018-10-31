@@ -139,12 +139,14 @@ Here, `message` is an instance of `Message` class exposed by the
 confluent-kafka-python, access the decoded key and value via `.key()` 
 and `.value()` respectively.
 
-Avro schemas for consumed messages will be available as soon as 
-[this pull request](https://github.com/confluentinc/confluent-kafka-python/pull/453) 
-is completed and merged.
+Both key and value are wrapped in a dynamically-generated class,
+that has the full name same as the corresponding Avro schema full name.
+In the example above, the value would have class named `auth.users.UserCreated`.
+
+Avro schemas for the consumed message key and value are accessible via `.schema` property.
 
 ## Contributing
-This libarary is, as stated, quite opinionated, however, I'm open to suggestions.
+This library is, as stated, quite opinionated, however, I'm open to suggestions.
 Write your questions and suggestions as issues here on github!
 
 #### Running tests
