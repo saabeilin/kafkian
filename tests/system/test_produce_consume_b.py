@@ -37,3 +37,12 @@ def test_produce_consume_one(producer, consumer):
     m = next(consumer)
     assert m.key() == key
     assert m.value() == value
+
+
+def test_produce_consume_one_tombstone(producer, consumer):
+    key = bytes(str(uuid.uuid4()), encoding='utf8')
+    value = None
+    producer.produce(TEST_TOPIC, key, value, sync=True)
+    m = next(consumer)
+    assert m.key() == key
+    assert m.value() == value

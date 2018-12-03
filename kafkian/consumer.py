@@ -78,9 +78,12 @@ class Consumer:
         logger.info("Closing consumer")
         self._consumer_impl.close()
 
+    def _poll(self):
+        return self._consumer_impl.poll(timeout=self.timeout)
+
     def _message_generator(self):
         while True:
-            message = self._consumer_impl.poll(timeout=self.timeout)
+            message = self._poll()
             if message is None:
                 if self.non_blocking:
                     yield None
@@ -91,7 +94,11 @@ class Consumer:
 
     def _deserialize(self, message):
         message.set_key(self.key_deserializer.deserialize(message.key()))
-        message.set_value(self.key_deserializer.deserialize(message.value()))
+        value = message.value()
+        # If value is None, it's a tombstone, just pass it through
+        if value is not None:
+            value = self.key_deserializer.deserialize(value)
+        message.set_value(value)
         return message
 
     def commit(self, sync=False):

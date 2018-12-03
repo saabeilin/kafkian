@@ -27,7 +27,7 @@ PRODUCER_CONFIG = {
 
 @pytest.fixture
 def producer():
-    return Producer(CONSUMER_CONFIG)
+    return Producer(PRODUCER_CONFIG)
 
 
 @pytest.fixture
@@ -36,6 +36,9 @@ def consumer():
 
 
 def test_produce_consume_one(producer, consumer):
+    producer_produce_mock.reset_mock()
+    producer_flush_mock.reset_mock()
+
     key = bytes(str(uuid.uuid4()), encoding='utf8')
     value = bytes(str(uuid.uuid4()), encoding='utf8')
     producer.produce(TEST_TOPIC, key, value, sync=True)
@@ -49,3 +52,15 @@ def test_produce_consume_one(producer, consumer):
     # m = next(consumer)
     # assert m.key() == key
     # assert m.value() == value
+
+
+def test_produce_consume_one_tombstone(producer, consumer):
+    producer_produce_mock.reset_mock()
+    producer_flush_mock.reset_mock()
+
+    key = bytes(str(uuid.uuid4()), encoding='utf8')
+    value = None
+    producer.produce(TEST_TOPIC, key, value, sync=True)
+
+    producer_produce_mock.assert_called_once_with(TEST_TOPIC, key, value)
+    producer_flush_mock.assert_called_once_with()

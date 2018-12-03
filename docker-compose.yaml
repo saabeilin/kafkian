@@ -1,14 +1,14 @@
 version: '3.5'
 services:
-  zookeeper-1:
+  test-zookeeper-1:
     image: confluentinc/cp-zookeeper:5.0.0
-    hostname: zookeeper-1
-    container_name: zookeeper-1
+    hostname: test-zookeeper-1
+    container_name: test-zookeeper-1
     ports:
       - "22181:2181"
     environment:
       ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_SERVERS: "zookeeper-1:4182:5181"
+      ZOOKEEPER_SERVERS: "test-zookeeper-1:4182:5181"
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_AUTOPURGE_SNAP_RETAIN_COUNT: 3
@@ -19,49 +19,49 @@ services:
       test: /bin/sh -c '[ \"imok\" = \"$$(echo ruok | nc -w 1 127.0.0.1 2181)\" ]' || exit 1
       interval: 1m
     volumes:
-      - zookeeper-1-data:/var/lib/zookeeper/data/
-      - zookeeper-1-log:/var/lib/zookeeper/log/
+      - test-zookeeper-1-data:/var/lib/zookeeper/data/
+      - test-zookeeper-1-log:/var/lib/zookeeper/log/
 
-  kafka-1:
+  test-kafka-1:
     image: confluentinc/cp-kafka:5.0.0
-    hostname: kafka-1
-    container_name: kafka-1
+    hostname: test-kafka-1
+    container_name: test-kafka-1
     stop_grace_period: 5m
     depends_on:
-      - zookeeper-1
+      - test-zookeeper-1
     ports:
       - "9092:9092"
       - "29092:29092"
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: "PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT"
-      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://kafka-1:9092,PLAINTEXT_HOST://localhost:29092"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://test-kafka-1:9092,PLAINTEXT_HOST://localhost:29092"
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
       KAFKA_DELETE_TOPIC_ENABLE: "true"
       KAFKA_NUM_PARTITIONS: 8
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper-1:2181"
+      KAFKA_ZOOKEEPER_CONNECT: "test-zookeeper-1:2181"
       KAFKA_DEFAULT_REPLICATION_FACTOR: 1
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_MIN_INSYNC_REPLICAS: 1
     volumes:
-      - kafka-1-data:/var/lib/kafka/data/
+      - test-kafka-1-data:/var/lib/kafka/data/
 
-  schema-registry:
+  test-schema-registry:
     image: confluentinc/cp-schema-registry:5.0.0
-    hostname: schema-registry
-    container_name: schema-registry
+    hostname: test-schema-registry
+    container_name: test-schema-registry
     depends_on:
-      - zookeeper-1
-      - kafka-1
+      - test-zookeeper-1
+      - test-kafka-1
     ports:
       - "28081:8081"
     environment:
-      SCHEMA_REGISTRY_HOST_NAME: "schema-registry"
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper-1:2181'
+      SCHEMA_REGISTRY_HOST_NAME: "test-schema-registry"
+      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'test-zookeeper-1:2181'
 
 volumes:
-    zookeeper-1-data:
-    zookeeper-1-log:
-    kafka-1-data:
+    test-zookeeper-1-data:
+    test-zookeeper-1-log:
+    test-kafka-1-data:
