@@ -36,6 +36,20 @@ class MockMessage(Mock):
         self._value = new_value
 
 
+def test_consume_one_b(consumer):
+    key = bytes(str(uuid.uuid4()), encoding='utf8')
+    value = bytes(str(uuid.uuid4()), encoding='utf8')
+
+    m = MockMessage()
+    m.set_key(key)
+    m.set_value(value)
+
+    with patch('kafkian.consumer.Consumer._poll', Mock(return_value=m)):
+        m = next(consumer)
+    assert m.key() == key
+    assert m.value() == value
+
+
 def test_consume_one_tombstone(consumer):
     key = bytes(str(uuid.uuid4()), encoding='utf8')
     value = None
