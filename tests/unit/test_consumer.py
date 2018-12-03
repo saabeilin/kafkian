@@ -23,9 +23,6 @@ def consumer():
 
 
 class MockMessage(Mock):
-    _key: bytes = None
-    _value: bytes = None
-
     def key(self):
         return self._key
 
