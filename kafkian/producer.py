@@ -58,8 +58,10 @@ class Producer:
         return self._producer_impl.poll(timeout)
 
     def produce(self, topic, key, value, sync=False):
-        value = self.value_serializer.serialize(value, topic)
         key = self.key_serializer.serialize(key, topic, is_key=True)
+        # If value is None, it's a "tombstone" and shall be passed through
+        if value is not None:
+            value = self.value_serializer.serialize(value, topic)
         self._produce(topic, key, value)
         if sync:
             self.flush()
