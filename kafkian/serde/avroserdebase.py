@@ -21,6 +21,10 @@ class HasSchemaMixin:
         return self._schema
 
 
+class AvroRecord(dict, HasSchemaMixin):
+    pass
+
+
 def _wrap(value, schema):
     """
     Wraps a value into subclass with HasSchemaMixin
