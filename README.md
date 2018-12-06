@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/saabeilin/kafkian.svg?branch=master)](https://travis-ci.org/saabeilin/kafkian)
 [![codecov](https://codecov.io/gh/saabeilin/kafkian/branch/master/graph/badge.svg)](https://codecov.io/gh/saabeilin/kafkian) 
-[![PyPI](https://img.shields.io/pypi/v/kafkian.svg)](https://pypi.python.org/pypi)
+[![PyPI](https://img.shields.io/pypi/v/kafkian.svg)](https://pypi.org/project/kafkian/)
 
 *kafkian* is a opinionated a high-level consumer and producer on top of 
 [confluent-kafka-python](https://github.com/confluentinc/confluent-kafka-python)/librdkafka 
