@@ -52,10 +52,8 @@ producer = Producer(
 #### 2. Define your message schema(s)
 
 ```python
-from avro.schema import Schema
-
-class Message(dict):
-    _schema: Schema = None
+from confluent_kafka import avro
+from kafkian.serde.avroserdebase import AvroRecord
 
 
 value_schema_str = """
@@ -84,7 +82,7 @@ value_schema_str = """
 """
 
 
-class UserCreated(Message):
+class UserCreated(AvroRecord):
     _schema = avro.loads(value_schema_str)
 
 ```
