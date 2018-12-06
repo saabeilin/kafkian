@@ -5,6 +5,7 @@ import pytest
 from confluent_kafka import avro
 
 from kafkian import producer
+from kafkian.serde.avroserdebase import AvroRecord
 from kafkian.serde.serialization import AvroSerializer, Serializer
 from tests.unit.conftest import producer_produce_mock
 
@@ -17,14 +18,6 @@ PRODUCER_CONFIG = {
     'schema.registry.url': SCHEMA_REGISTRY_URL,
 }
 
-
-class Message(dict):
-    _schema = None
-
-
-message = Message({
-    'name': 'some name'
-})
 
 value_schema_str = """
 {
@@ -40,7 +33,14 @@ value_schema_str = """
 }
 """
 
-message._schema = avro.loads(value_schema_str)
+
+class Message(AvroRecord):
+    _schema = avro.loads(value_schema_str)
+
+
+message = Message({
+    'name': 'some name'
+})
 
 
 def teardown_function(function):

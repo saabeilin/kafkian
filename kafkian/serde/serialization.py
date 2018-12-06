@@ -3,7 +3,7 @@ from enum import Enum
 from confluent_kafka import avro
 from confluent_kafka.avro import CachedSchemaRegistryClient
 
-from .avroserdebase import AvroSerDeBase
+from .avroserdebase import AvroSerDeBase, AvroRecord
 
 
 class SubjectNameStrategy(Enum):
@@ -37,7 +37,7 @@ class AvroSerializer(Serializer):
         self.subject_name_strategy = subject_name_strategy
         self._serializer_impl = AvroSerDeBase(self.schema_registry)
 
-    def _get_subject(self, topic, schema, is_key=False):
+    def _get_subject(self, topic: str, schema, is_key=False):
         if self.subject_name_strategy == SubjectNameStrategy.TopicNameStrategy:
             subject = topic + ('-key' if is_key else '-value')
         elif self.subject_name_strategy == SubjectNameStrategy.RecordNameStrategy:
@@ -48,7 +48,7 @@ class AvroSerializer(Serializer):
             raise ValueError('Unknown SubjectNameStrategy')
         return subject
 
-    def _ensure_schema(self, topic, schema, is_key=False):
+    def _ensure_schema(self, topic: str, schema, is_key=False):
         subject = self._get_subject(topic, schema, is_key)
 
         if self.auto_register_schemas:
@@ -59,8 +59,8 @@ class AvroSerializer(Serializer):
 
         return schema_id, schema
 
-    def serialize(self, value, topic, is_key=False, **kwargs):
-        schema_id, _ = self._ensure_schema(topic, value._schema, is_key)
+    def serialize(self, value: AvroRecord, topic: str, is_key=False, **kwargs):
+        schema_id, _ = self._ensure_schema(topic, value.schema, is_key)
         return self._serializer_impl.encode_record_with_schema_id(schema_id, value, is_key)
 
 
@@ -72,8 +72,7 @@ class AvroStringKeySerializer(AvroSerializer):
 
     KEY_SCHEMA = avro.loads("""{"type": "string"}""")
 
-    def serialize(self, value, topic, is_key=False, **kwargs):
-        schema = self.KEY_SCHEMA if is_key else value._schema
-        schema_id, _ = self._ensure_schema(topic, schema, is_key)
-        return self._serializer_impl.encode_record_with_schema_id(
-            schema_id, value, is_key)
+    def serialize(self, value: str, topic: str, is_key=False, **kwargs):
+        assert is_key
+        schema_id, _ = self._ensure_schema(topic, self.KEY_SCHEMA, is_key)
+        return self._serializer_impl.encode_record_with_schema_id(schema_id, value, is_key)

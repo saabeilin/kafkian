@@ -4,6 +4,7 @@ import pytest
 from confluent_kafka import avro
 
 from kafkian import Producer, Consumer
+from kafkian.serde.avroserdebase import AvroRecord
 from kafkian.serde.deserialization import AvroDeserializer
 from kafkian.serde.serialization import AvroStringKeySerializer, AvroSerializer
 
@@ -24,10 +25,6 @@ PRODUCER_CONFIG = {
 }
 
 
-class Message(dict):
-    _schema = None
-
-
 value_schema_str = """
 {
    "namespace": "my.test",
@@ -42,7 +39,9 @@ value_schema_str = """
 }
 """
 
-Message._schema = avro.loads(value_schema_str)
+
+class Message(AvroRecord):
+    _schema = avro.loads(value_schema_str)
 
 
 @pytest.fixture
