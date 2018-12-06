@@ -1,11 +1,13 @@
 from setuptools import find_packages, setup
 
+
 def readme():
     with open('README.md') as f:
         return f.read()
 
+
 setup(name="kafkian",
-      version="0.8.0",
+      version="0.9.0",
       description="Opinionated Kafka Python client on top of Confluent python library",
       long_description=readme(),
       long_description_content_type="text/markdown",
