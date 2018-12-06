@@ -97,7 +97,7 @@ class Consumer:
         value = message.value()
         # If value is None, it's a tombstone, just pass it through
         if value is not None:
-            value = self.key_deserializer.deserialize(value)
+            value = self.value_deserializer.deserialize(value)
         message.set_value(value)
         return message
 
