@@ -31,8 +31,7 @@ class Consumer:
 
     def __init__(
         self, config: typing.Dict, topics: typing.Iterable,
-            value_deserializer=Deserializer(), key_deserializer=Deserializer(),
-            error_callbacks: typing.List[Callable] = None
+            value_deserializer=Deserializer(), key_deserializer=Deserializer()
     ) -> None:
         self._subscribed = False
         self.topics = list(topics)
@@ -43,7 +42,6 @@ class Consumer:
         logger.info("Initializing consumer", config=config)
         self._consumer_impl = self._init_consumer_impl(config)
         self._generator = self._message_generator()
-        self.error_callbacks = error_callbacks
         atexit.register(self._close)
 
     @staticmethod
@@ -102,7 +100,6 @@ class Consumer:
             if message.error():
                 if message.error().code() == KafkaError._PARTITION_EOF:
                     continue
-                self._on_poll_error(message)
                 raise KafkianException(message.error())
             yield self._deserialize(message)
 
@@ -121,8 +118,3 @@ class Consumer:
         :param sync: do a synchronous commit (false by default)
         """
         self._consumer_impl.commit(asynchronous=not sync)
-
-    def _on_poll_error(self, message):
-        if self.error_callbacks:
-            for cb in self.error_callbacks:
-                cb(message)
