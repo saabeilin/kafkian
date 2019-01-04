@@ -35,6 +35,9 @@ class MockMessage(Mock):
     def set_value(self, new_value):
         self._value = new_value
 
+    def error(self):
+        return None
+
 
 def test_consume_one_b(consumer):
     key = bytes(str(uuid.uuid4()), encoding='utf8')

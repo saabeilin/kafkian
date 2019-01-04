@@ -69,6 +69,9 @@ class MockMessage(Mock):
     def set_value(self, new_value):
         self._value = new_value
 
+    def error(self):
+        return None
+
 
 @patch(
     'confluent_kafka.avro.CachedSchemaRegistryClient.register',
