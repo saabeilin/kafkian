@@ -7,7 +7,7 @@ def readme():
 
 
 setup(name="kafkian",
-      version="0.9.0",
+      version="0.10.0",
       description="Opinionated Kafka Python client on top of Confluent python library",
       long_description=readme(),
       long_description_content_type="text/markdown",
