@@ -1,11 +1,12 @@
+import atexit
 import socket
 import typing
 from typing import Callable
 
 import structlog
 from confluent_kafka.cimpl import Consumer as ConfluentConsumer, KafkaError
-from confluent_kafka.cimpl import KafkaException
 
+from kafkian.exceptions import KafkianException
 from kafkian.serde.deserialization import Deserializer
 
 logger = structlog.get_logger(__name__)
@@ -30,8 +31,7 @@ class Consumer:
 
     def __init__(
         self, config: typing.Dict, topics: typing.Iterable,
-            value_deserializer=Deserializer(), key_deserializer=Deserializer(),
-            error_handler: Callable = None
+            value_deserializer=Deserializer(), key_deserializer=Deserializer()
     ) -> None:
         self._subscribed = False
         self.topics = list(topics)
@@ -42,6 +42,7 @@ class Consumer:
         logger.info("Initializing consumer", config=config)
         self._consumer_impl = self._init_consumer_impl(config)
         self._generator = self._message_generator()
+        atexit.register(self._close)
 
     @staticmethod
     def _init_consumer_impl(config):
@@ -54,29 +55,37 @@ class Consumer:
         self._subscribed = True
 
     def __iter__(self):
+        self._subscribe()
         return self
 
     def __next__(self):
         self._subscribe()
         try:
             return next(self._generator)
-        except KafkaException:
-            raise StopIteration
+        except:
+            self._close()
+            raise
 
     def __enter__(self):
         self._consumer_impl.subscribe(self.topics)
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        # the only reason a consumer exits is when an
-        # exception is raised.
-        #
-        # close down the consumer cleanly accordingly:
-        #  - stops consuming
-        #  - commit offsets (only on auto commit)
-        #  - leave consumer group
+        self._close()
+
+    def _close(self):
+        """
+        Close down the consumer cleanly accordingly:
+         - stops consuming
+         - commit offsets (only on auto commit)
+         - leave consumer group
+        """
         logger.info("Closing consumer")
-        self._consumer_impl.close()
+        try:
+            self._consumer_impl.close()
+        except RuntimeError:
+            # Consumer is probably already closed
+            pass
 
     def _poll(self):
         return self._consumer_impl.poll(timeout=self.timeout)
@@ -88,8 +97,10 @@ class Consumer:
                 if self.non_blocking:
                     yield None
                 continue
-            if message.error() == KafkaError._PARTITION_EOF:
-                continue
+            if message.error():
+                if message.error().code() == KafkaError._PARTITION_EOF:
+                    continue
+                raise KafkianException(message.error())
             yield self._deserialize(message)
 
     def _deserialize(self, message):
@@ -102,4 +113,8 @@ class Consumer:
         return message
 
     def commit(self, sync=False):
+        """
+        Commits current consumer offsets.
+        :param sync: do a synchronous commit (false by default)
+        """
         self._consumer_impl.commit(asynchronous=not sync)

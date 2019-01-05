@@ -1,0 +1,2 @@
+class KafkianException(Exception):
+    pass
