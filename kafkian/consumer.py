@@ -34,7 +34,10 @@ class Consumer:
             config: typing.Dict,
             topics: typing.Iterable,
             value_deserializer=Deserializer(),
-            key_deserializer=Deserializer()
+            key_deserializer=Deserializer(),
+            error_callbacks=None,
+            commit_success_callbacks=None,
+            commit_error_callbacks=None
     ) -> None:
 
         self._subscribed = False
@@ -43,6 +46,10 @@ class Consumer:
         self.timeout = 0.1          # TODO
         self.key_deserializer = key_deserializer
         self.value_deserializer = value_deserializer
+
+        self.error_callbacks = error_callbacks
+        self.commit_success_callbacks = commit_success_callbacks
+        self.commit_error_callbacks = commit_error_callbacks
 
         config = {**self.DEFAULT_CONFIG, **config}
         config['on_commit'] = self._on_commit
@@ -128,7 +135,7 @@ class Consumer:
         Commits current consumer offsets.
         :param sync: do a synchronous commit (false by default)
         """
-        self._consumer_impl.commit(asynchronous=not sync)
+        return self._consumer_impl.commit(asynchronous=not sync)
 
     def _on_commit(self, err, topics_partitions):
         if err:
@@ -136,21 +143,22 @@ class Consumer:
                 "Offset commmit failed",
                 error_message=str(err),
             )
-            # TODO
-            # if self.error_callbacks:
-            #     for cb in self.error_callbacks:
-            #         cb(msg, err)
+            if self.commit_error_callbacks:
+                for cb in self.commit_error_callbacks:
+                    cb(msg, err)
         else:
             logger.debug(
-                "Offset commit succeeded",
+                "Offset commit succeeded", topics_partitions=topics_partitions
             )
-            # TODO
-            # if self.success_callbacks:
-            #     for cb in self.success_callbacks:
-            #         cb(err)
+            if self.commit_success_callbacks:
+                for cb in self.commit_success_callbacks:
+                    cb(topic_partitions)
 
     def _on_error(self, error):
         logger.error("Error", error=error)
+        if self.error_callbacks:
+            for cb in self.error_callbacks:
+                cb(error)
 
     def _on_throttle(self, event):
         logger.warning("Throttle", tevent=event)

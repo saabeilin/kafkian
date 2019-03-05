@@ -33,14 +33,17 @@ class Producer:
             config: typing.Dict,
             value_serializer=Serializer(),
             key_serializer=Serializer(),
-            success_callbacks=None,
-            error_callbacks=None
+            error_callbacks=None,
+            delivery_success_callbacks=None,
+            delivery_error_callbacks=None
     ) -> None:
 
         self.value_serializer = value_serializer
         self.key_serializer = key_serializer
-        self.success_callbacks = success_callbacks
+
         self.error_callbacks = error_callbacks
+        self.delivery_success_callbacks = delivery_success_callbacks
+        self.delivery_error_callbacks = delivery_error_callbacks
 
         config = {**self.DEFAULT_CONFIG, **config}
         config['on_delivery'] = self._on_delivery
@@ -91,8 +94,8 @@ class Producer:
                 key=msg.key(),
                 partition=msg.partition()
             )
-            if self.error_callbacks:
-                for cb in self.error_callbacks:
+            if self.delivery_error_callbacks:
+                for cb in self.delivery_error_callbacks:
                     cb(msg, err)
         else:
             logger.debug(
@@ -101,12 +104,15 @@ class Producer:
                 key=msg.key(),
                 partition=msg.partition()
             )
-            if self.success_callbacks:
-                for cb in self.success_callbacks:
-                    cb(err)
+            if self.delivery_success_callbacks:
+                for cb in self.delivery_success_callbacks:
+                    cb(msg)
 
     def _on_error(self, error):
         logger.error("Error", error=error)
+        if self.error_callbacks:
+            for cb in self.error_callbacks:
+                cb(error)
 
     def _on_throttle(self, event):
         logger.warning("Throttle", tevent=event)
