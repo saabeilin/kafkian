@@ -30,19 +30,30 @@ class Consumer:
     }
 
     def __init__(
-        self, config: typing.Dict, topics: typing.Iterable,
-            value_deserializer=Deserializer(), key_deserializer=Deserializer()
+            self,
+            config: typing.Dict,
+            topics: typing.Iterable,
+            value_deserializer=Deserializer(),
+            key_deserializer=Deserializer()
     ) -> None:
+
         self._subscribed = False
         self.topics = list(topics)
         self.non_blocking = False   # TODO
         self.timeout = 0.1          # TODO
         self.key_deserializer = key_deserializer
         self.value_deserializer = value_deserializer
+
+        config = {**self.DEFAULT_CONFIG, **config}
+        config['on_commit'] = self._on_commit
+        config['error_cb'] = self._on_error
+        config['throttle_cb'] = self._on_throttle
+        config['stats_cb'] = self._on_stats
+
         logger.info("Initializing consumer", config=config)
+        atexit.register(self._close)
         self._consumer_impl = self._init_consumer_impl(config)
         self._generator = self._message_generator()
-        atexit.register(self._close)
 
     @staticmethod
     def _init_consumer_impl(config):
@@ -118,3 +129,34 @@ class Consumer:
         :param sync: do a synchronous commit (false by default)
         """
         self._consumer_impl.commit(asynchronous=not sync)
+
+    def _on_commit(self, err, topics_partitions):
+        if err:
+            logger.warning(
+                "Offset commmit failed",
+                error_message=str(err),
+            )
+            # TODO
+            # if self.error_callbacks:
+            #     for cb in self.error_callbacks:
+            #         cb(msg, err)
+        else:
+            logger.debug(
+                "Offset commit succeeded",
+            )
+            # TODO
+            # if self.success_callbacks:
+            #     for cb in self.success_callbacks:
+            #         cb(err)
+
+    def _on_error(self, error):
+        logger.error("Error", error=error)
+
+    def _on_throttle(self, event):
+        logger.warning("Throttle", tevent=event)
+
+    def _on_stats(self, stats):
+        # logger.debug("Stats", stats=stats)
+        import json
+        from pprint import pprint
+        pprint(json.loads(stats))

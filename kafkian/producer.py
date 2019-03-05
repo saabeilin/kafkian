@@ -1,5 +1,6 @@
 import atexit
 import socket
+import typing
 
 import structlog
 from confluent_kafka.cimpl import Producer as ConfluentProducer
@@ -27,20 +28,28 @@ class Producer:
         'statistics.interval.ms': 15000,
     }
 
-    def __init__(self, config,
-                 value_serializer=Serializer(), key_serializer=Serializer(),
-                 success_callbacks=None,
-                 error_callbacks=None):
-        config = {**self.DEFAULT_CONFIG, **config}
-        config['on_delivery'] = self._on_delivery
+    def __init__(
+            self,
+            config: typing.Dict,
+            value_serializer=Serializer(),
+            key_serializer=Serializer(),
+            success_callbacks=None,
+            error_callbacks=None
+    ) -> None:
+
         self.value_serializer = value_serializer
         self.key_serializer = key_serializer
         self.success_callbacks = success_callbacks
         self.error_callbacks = error_callbacks
 
+        config = {**self.DEFAULT_CONFIG, **config}
+        config['on_delivery'] = self._on_delivery
+        config['error_cb'] = self._on_error
+        config['throttle_cb'] = self._on_throttle
+        config['stats_cb'] = self._on_stats
+
         logger.info("Initializing producer", config=config)
         atexit.register(self._close)
-
         self._producer_impl = self._init_producer_impl(config)
 
     @staticmethod
@@ -95,3 +104,15 @@ class Producer:
             if self.success_callbacks:
                 for cb in self.success_callbacks:
                     cb(err)
+
+    def _on_error(self, error):
+        logger.error("Error", error=error)
+
+    def _on_throttle(self, event):
+        logger.warning("Throttle", tevent=event)
+
+    def _on_stats(self, stats):
+        # logger.debug("Stats", stats=stats)
+        import json
+        from pprint import pprint
+        pprint(json.loads(stats))
