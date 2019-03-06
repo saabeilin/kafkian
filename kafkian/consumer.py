@@ -161,7 +161,4 @@ class Consumer:
         logger.warning("Throttle", tevent=event)
 
     def _on_stats(self, stats):
-        # logger.debug("Stats", stats=stats)
-        import json
-        from pprint import pprint
-        pprint(json.loads(stats))
+        pass
