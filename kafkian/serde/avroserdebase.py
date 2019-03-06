@@ -1,6 +1,5 @@
 import struct
 
-import avro.io
 from confluent_kafka.avro import MessageSerializer as ConfluentMessageSerializer
 from confluent_kafka.avro.serializer import SerializerError
 from confluent_kafka.avro.serializer.message_serializer import ContextStringIO
