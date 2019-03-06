@@ -1,5 +1,5 @@
 from .consumer import Consumer
-from .producer import Producer
 from .exceptions import KafkianException
+from .producer import Producer
 
 __all__ = ['Consumer', 'Producer', 'KafkianException']

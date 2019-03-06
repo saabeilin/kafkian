@@ -3,7 +3,7 @@ from enum import Enum
 from confluent_kafka import avro
 from confluent_kafka.avro import CachedSchemaRegistryClient
 
-from .avroserdebase import AvroSerDeBase, AvroRecord
+from .avroserdebase import AvroRecord, AvroSerDeBase
 
 
 class SubjectNameStrategy(Enum):

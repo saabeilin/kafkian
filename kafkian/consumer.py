@@ -1,10 +1,10 @@
 import atexit
 import socket
 import typing
-from typing import Callable
 
 import structlog
-from confluent_kafka.cimpl import Consumer as ConfluentConsumer, KafkaError
+from confluent_kafka.cimpl import Consumer as ConfluentConsumer
+from confluent_kafka.cimpl import KafkaError
 
 from kafkian.exceptions import KafkianException
 from kafkian.serde.deserialization import Deserializer
@@ -30,19 +30,37 @@ class Consumer:
     }
 
     def __init__(
-        self, config: typing.Dict, topics: typing.Iterable,
-            value_deserializer=Deserializer(), key_deserializer=Deserializer()
+            self,
+            config: typing.Dict,
+            topics: typing.Iterable,
+            value_deserializer=Deserializer(),
+            key_deserializer=Deserializer(),
+            error_callback: typing.Optional[typing.Callable] = None,
+            commit_success_callback: typing.Optional[typing.Callable] = None,
+            commit_error_callback: typing.Optional[typing.Callable] = None
     ) -> None:
+
         self._subscribed = False
         self.topics = list(topics)
         self.non_blocking = False   # TODO
         self.timeout = 0.1          # TODO
         self.key_deserializer = key_deserializer
         self.value_deserializer = value_deserializer
+
+        self.error_callback = error_callback
+        self.commit_success_callback = commit_success_callback
+        self.commit_error_callback = commit_error_callback
+
+        config = {**self.DEFAULT_CONFIG, **config}
+        config['on_commit'] = self._on_commit
+        config['error_cb'] = self._on_error
+        config['throttle_cb'] = self._on_throttle
+        config['stats_cb'] = self._on_stats
+
         logger.info("Initializing consumer", config=config)
+        atexit.register(self._close)
         self._consumer_impl = self._init_consumer_impl(config)
         self._generator = self._message_generator()
-        atexit.register(self._close)
 
     @staticmethod
     def _init_consumer_impl(config):
@@ -117,4 +135,30 @@ class Consumer:
         Commits current consumer offsets.
         :param sync: do a synchronous commit (false by default)
         """
-        self._consumer_impl.commit(asynchronous=not sync)
+        return self._consumer_impl.commit(asynchronous=not sync)
+
+    def _on_commit(self, err, topics_partitions):
+        if err:
+            logger.warning(
+                "Offset commmit failed",
+                error_message=str(err),
+            )
+            if self.commit_error_callback:
+                self.commit_error_callback(topics_partitions, err)
+        else:
+            logger.debug(
+                "Offset commit succeeded", topics_partitions=topics_partitions
+            )
+            if self.commit_success_callback:
+                self.commit_success_callback(topics_partitions)
+
+    def _on_error(self, error):
+        logger.error("Error", error=error)
+        if self.error_callback:
+            self.error_callback(error)
+
+    def _on_throttle(self, event):
+        logger.warning("Throttle", tevent=event)
+
+    def _on_stats(self, stats):
+        pass
