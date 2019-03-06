@@ -33,17 +33,17 @@ class Producer:
             config: typing.Dict,
             value_serializer=Serializer(),
             key_serializer=Serializer(),
-            error_callbacks=None,
-            delivery_success_callbacks=None,
-            delivery_error_callbacks=None
+            error_callback: typing.Optional[typing.Callable] = None,
+            delivery_success_callback: typing.Optional[typing.Callable] = None,
+            delivery_error_callback: typing.Optional[typing.Callable] = None
     ) -> None:
 
         self.value_serializer = value_serializer
         self.key_serializer = key_serializer
 
-        self.error_callbacks = error_callbacks
-        self.delivery_success_callbacks = delivery_success_callbacks
-        self.delivery_error_callbacks = delivery_error_callbacks
+        self.error_callback = error_callback
+        self.delivery_success_callback = delivery_success_callback
+        self.delivery_error_callback = delivery_error_callback
 
         config = {**self.DEFAULT_CONFIG, **config}
         config['on_delivery'] = self._on_delivery
@@ -94,9 +94,8 @@ class Producer:
                 key=msg.key(),
                 partition=msg.partition()
             )
-            if self.delivery_error_callbacks:
-                for cb in self.delivery_error_callbacks:
-                    cb(msg, err)
+            if self.delivery_error_callback:
+                self.delivery_error_callback(msg, err)
         else:
             logger.debug(
                 "Producer send succeeded",
@@ -104,15 +103,13 @@ class Producer:
                 key=msg.key(),
                 partition=msg.partition()
             )
-            if self.delivery_success_callbacks:
-                for cb in self.delivery_success_callbacks:
-                    cb(msg)
+            if self.delivery_success_callback:
+                self.delivery_success_callback(msg)
 
     def _on_error(self, error):
         logger.error("Error", error=error)
-        if self.error_callbacks:
-            for cb in self.error_callbacks:
-                cb(error)
+        if self.error_callback:
+            self.error_callback(error)
 
     def _on_throttle(self, event):
         logger.warning("Throttle", tevent=event)

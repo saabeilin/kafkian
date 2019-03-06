@@ -1,10 +1,10 @@
 import atexit
 import socket
 import typing
-from typing import Callable
 
 import structlog
-from confluent_kafka.cimpl import Consumer as ConfluentConsumer, KafkaError
+from confluent_kafka.cimpl import Consumer as ConfluentConsumer
+from confluent_kafka.cimpl import KafkaError
 
 from kafkian.exceptions import KafkianException
 from kafkian.serde.deserialization import Deserializer
@@ -35,9 +35,9 @@ class Consumer:
             topics: typing.Iterable,
             value_deserializer=Deserializer(),
             key_deserializer=Deserializer(),
-            error_callbacks=None,
-            commit_success_callbacks=None,
-            commit_error_callbacks=None
+            error_callback: typing.Optional[typing.Callable] = None,
+            commit_success_callback: typing.Optional[typing.Callable] = None,
+            commit_error_callback: typing.Optional[typing.Callable] = None
     ) -> None:
 
         self._subscribed = False
@@ -47,9 +47,9 @@ class Consumer:
         self.key_deserializer = key_deserializer
         self.value_deserializer = value_deserializer
 
-        self.error_callbacks = error_callbacks
-        self.commit_success_callbacks = commit_success_callbacks
-        self.commit_error_callbacks = commit_error_callbacks
+        self.error_callback = error_callback
+        self.commit_success_callback = commit_success_callback
+        self.commit_error_callback = commit_error_callback
 
         config = {**self.DEFAULT_CONFIG, **config}
         config['on_commit'] = self._on_commit
@@ -143,22 +143,19 @@ class Consumer:
                 "Offset commmit failed",
                 error_message=str(err),
             )
-            if self.commit_error_callbacks:
-                for cb in self.commit_error_callbacks:
-                    cb(msg, err)
+            if self.commit_error_callback:
+                self.commit_error_callback(topics_partitions, err)
         else:
             logger.debug(
                 "Offset commit succeeded", topics_partitions=topics_partitions
             )
-            if self.commit_success_callbacks:
-                for cb in self.commit_success_callbacks:
-                    cb(topic_partitions)
+            if self.commit_success_callback:
+                self.commit_success_callback(topics_partitions)
 
     def _on_error(self, error):
         logger.error("Error", error=error)
-        if self.error_callbacks:
-            for cb in self.error_callbacks:
-                cb(error)
+        if self.error_callback:
+            self.error_callback(error)
 
     def _on_throttle(self, event):
         logger.warning("Throttle", tevent=event)
