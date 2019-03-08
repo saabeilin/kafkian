@@ -37,7 +37,8 @@ class Consumer:
             key_deserializer=Deserializer(),
             error_callback: typing.Optional[typing.Callable] = None,
             commit_success_callback: typing.Optional[typing.Callable] = None,
-            commit_error_callback: typing.Optional[typing.Callable] = None
+            commit_error_callback: typing.Optional[typing.Callable] = None,
+            metrics=None
     ) -> None:
 
         self._subscribed = False
@@ -50,6 +51,8 @@ class Consumer:
         self.error_callback = error_callback
         self.commit_success_callback = commit_success_callback
         self.commit_error_callback = commit_error_callback
+
+        self.metrics = metrics
 
         config = {**self.DEFAULT_CONFIG, **config}
         config['on_commit'] = self._on_commit
@@ -161,4 +164,5 @@ class Consumer:
         logger.warning("Throttle", tevent=event)
 
     def _on_stats(self, stats):
-        pass
+        if self.metrics:
+            self.metrics.send(stats)

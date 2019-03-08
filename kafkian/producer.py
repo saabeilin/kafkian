@@ -35,7 +35,8 @@ class Producer:
             key_serializer=Serializer(),
             error_callback: typing.Optional[typing.Callable] = None,
             delivery_success_callback: typing.Optional[typing.Callable] = None,
-            delivery_error_callback: typing.Optional[typing.Callable] = None
+            delivery_error_callback: typing.Optional[typing.Callable] = None,
+            metrics=None
     ) -> None:
 
         self.value_serializer = value_serializer
@@ -44,6 +45,8 @@ class Producer:
         self.error_callback = error_callback
         self.delivery_success_callback = delivery_success_callback
         self.delivery_error_callback = delivery_error_callback
+
+        self.metrics = metrics
 
         config = {**self.DEFAULT_CONFIG, **config}
         config['on_delivery'] = self._on_delivery
@@ -115,4 +118,5 @@ class Producer:
         logger.warning("Throttle", tevent=event)
 
     def _on_stats(self, stats):
-        pass
+        if self.metrics:
+            self.metrics.send(stats)
