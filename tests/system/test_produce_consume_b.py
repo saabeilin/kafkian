@@ -34,7 +34,9 @@ def test_produce_consume_one(producer, consumer):
     key = bytes(str(uuid.uuid4()), encoding='utf8')
     value = bytes(str(uuid.uuid4()), encoding='utf8')
     producer.produce(TEST_TOPIC, key, value, sync=True)
-    m = next(consumer)
+    with consumer:
+        m = next(consumer)
+        consumer.commit(sync=True)
     assert m.key() == key
     assert m.value() == value
 
@@ -43,6 +45,8 @@ def test_produce_consume_one_tombstone(producer, consumer):
     key = bytes(str(uuid.uuid4()), encoding='utf8')
     value = None
     producer.produce(TEST_TOPIC, key, value, sync=True)
-    m = next(consumer)
+    with consumer:
+        m = next(consumer)
+        consumer.commit(sync=True)
     assert m.key() == key
     assert m.value() == value

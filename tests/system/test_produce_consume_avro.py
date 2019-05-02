@@ -70,7 +70,9 @@ def test_produce_consume_one(producer, consumer):
     })
 
     producer.produce(TEST_TOPIC, key, value, sync=True)
-    m = next(consumer)
+    with consumer:
+        m = next(consumer)
+        consumer.commit(sync=True)
     assert m.key() == key
     assert m.value() == value
 
@@ -80,6 +82,8 @@ def test_produce_consume_one_tombstone(producer, consumer):
     value = None
 
     producer.produce(TEST_TOPIC, key, value, sync=True)
-    m = next(consumer)
+    with consumer:
+        m = next(consumer)
+        consumer.commit(sync=True)
     assert m.key() == key
     assert m.value() == value

@@ -32,5 +32,5 @@ schema = avro.loads(value_schema_str)
     )
 )
 def test_subject_name_strategy(strategy, is_key, subject):
-    ser = AvroSerializer('', subject_name_strategy=strategy)
+    ser = AvroSerializer("http://nxhost:2181", subject_name_strategy=strategy)
     assert ser._get_subject("topic", schema, is_key) == subject
