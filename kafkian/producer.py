@@ -24,6 +24,7 @@ class Producer:
         'client.id': socket.gethostname(),
         'log.connection.close': False,
         'max.in.flight': 1,
+        'enable.idempotence': True,
         'queue.buffering.max.ms': 100,
         'statistics.interval.ms': 15000,
     }
