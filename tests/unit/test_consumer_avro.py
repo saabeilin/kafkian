@@ -15,9 +15,7 @@ SCHEMA_REGISTRY_URL = 'https://localhost:28081'
 
 CONSUMER_CONFIG = {
     'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
-    'default.topic.config': {
-        'auto.offset.reset': 'earliest',
-    },
+    'auto.offset.reset': 'earliest',
     'group.id': str(uuid.uuid4())
 }
 

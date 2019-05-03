@@ -1,5 +1,5 @@
 avro-python3>=1.8.2
-confluent-kafka>=0.11.5
+confluent-kafka>=1.0.0
 fastavro>=0.18.0
 
 codecov

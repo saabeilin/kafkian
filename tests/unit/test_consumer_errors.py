@@ -12,9 +12,7 @@ TEST_TOPIC = 'test.test.' + str(uuid.uuid4())
 
 CONSUMER_CONFIG = {
     'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
-    'default.topic.config': {
-        'auto.offset.reset': 'earliest',
-    },
+    'auto.offset.reset': 'earliest',
     'group.id': str(uuid.uuid4())
 }
 

@@ -17,9 +17,7 @@ class Consumer:
     DEFAULT_CONFIG = {
         'api.version.request': True,
         'client.id': socket.gethostname(),
-        'default.topic.config': {
-            'auto.offset.reset': 'latest'
-        },
+        'auto.offset.reset': 'latest',
         'enable.auto.commit': False,
         'fetch.error.backoff.ms': 0,
         'fetch.wait.max.ms': 10,
