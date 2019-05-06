@@ -1,4 +1,5 @@
 import atexit
+import logging
 import socket
 import typing
 
@@ -61,7 +62,7 @@ class Producer:
 
     @staticmethod
     def _init_producer_impl(config):
-        return ConfluentProducer(config)
+        return ConfluentProducer(config, logger=logging.getLogger('librdkafka.producer'))
 
     def _close(self):
         self.flush()

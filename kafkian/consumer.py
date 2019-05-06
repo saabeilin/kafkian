@@ -1,4 +1,5 @@
 import atexit
+import logging
 import socket
 import typing
 
@@ -65,7 +66,7 @@ class Consumer:
 
     @staticmethod
     def _init_consumer_impl(config):
-        return ConfluentConsumer(config)
+        return ConfluentConsumer(config, logger=logging.getLogger('librdkafka.consumer'))
 
     def _subscribe(self):
         if self._subscribed:
