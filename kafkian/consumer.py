@@ -142,7 +142,7 @@ class Consumer:
     def _on_commit(self, err, topics_partitions):
         if err:
             logger.warning(
-                "Offset commmit failed",
+                "Offset commit failed",
                 error_message=str(err),
             )
             if self.commit_error_callback:
@@ -154,8 +154,8 @@ class Consumer:
             if self.commit_success_callback:
                 self.commit_success_callback(topics_partitions)
 
-    def _on_error(self, error):
-        logger.error("Error", error=error)
+    def _on_error(self, error: KafkaError):
+        logger.error(error.str(), code=error.code(), name=error.name())
         if self.error_callback:
             self.error_callback(error)
 

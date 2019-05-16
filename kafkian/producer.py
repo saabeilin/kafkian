@@ -4,6 +4,7 @@ import socket
 import typing
 
 import structlog
+from confluent_kafka.cimpl import KafkaError
 from confluent_kafka.cimpl import Producer as ConfluentProducer
 
 from kafkian.serde.serialization import Serializer
@@ -111,8 +112,8 @@ class Producer:
             if self.delivery_success_callback:
                 self.delivery_success_callback(msg)
 
-    def _on_error(self, error):
-        logger.error("Error", error=error)
+    def _on_error(self, error: KafkaError):
+        logger.error(error.str(), code=error.code(), name=error.name())
         if self.error_callback:
             self.error_callback(error)
 
