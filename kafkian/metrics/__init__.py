@@ -45,6 +45,8 @@ class KafkaMetrics:
 
         for topic, topic_stats in stats['topics'].items():
             for partition, partition_stats in topic_stats['partitions'].items():
+                # TODO: why is partition a string? @edenhill
+                partition = int(partition)
                 if partition < 0:
                     # TODO: what does partition -1 mean? @edenhill
                     continue
