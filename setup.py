@@ -7,7 +7,7 @@ def readme():
 
 
 setup(name="kafkian",
-      version="0.11.0",
+      version="0.12.0",
       description="Opinionated Kafka Python client on top of Confluent python library",
       long_description=readme(),
       long_description_content_type="text/markdown",
@@ -25,7 +25,6 @@ setup(name="kafkian",
       license="Apache 2.0",
       packages=find_packages(),
       install_requires=[
-          'structlog>=17.2.0',
           'confluent-kafka>=1.0.0',
           'fastavro>=0.18.0',
           'avro-python3>=1.8.2'

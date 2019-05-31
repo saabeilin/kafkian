@@ -3,18 +3,15 @@ import logging
 import socket
 import typing
 
-import structlog
-from confluent_kafka.cimpl import Consumer as ConfluentConsumer
-from confluent_kafka.cimpl import KafkaError
+from confluent_kafka.cimpl import Consumer as ConfluentConsumer, KafkaError
 
 from kafkian.exceptions import KafkianException
 from kafkian.serde.deserialization import Deserializer
 
-logger = structlog.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Consumer:
-
     DEFAULT_CONFIG = {
         'api.version.request': True,
         'client.id': socket.gethostname(),
@@ -42,8 +39,8 @@ class Consumer:
 
         self._subscribed = False
         self.topics = list(topics)
-        self.non_blocking = False   # TODO
-        self.timeout = 0.1          # TODO
+        self.non_blocking = False  # TODO
+        self.timeout = 0.1  # TODO
         self.key_deserializer = key_deserializer
         self.value_deserializer = value_deserializer
 
@@ -59,7 +56,7 @@ class Consumer:
         config['throttle_cb'] = self._on_throttle
         config['stats_cb'] = self._on_stats
 
-        logger.info("Initializing consumer", config=config)
+        logger.info("Initializing consumer", extra=dict(config=config))
         atexit.register(self._close)
         self._consumer_impl = self._init_consumer_impl(config)
         self._generator = self._message_generator()
@@ -143,24 +140,25 @@ class Consumer:
         if err:
             logger.warning(
                 "Offset commit failed",
-                error_message=str(err),
+                extra=dict(error_message=str(err))
             )
             if self.commit_error_callback:
                 self.commit_error_callback(topics_partitions, err)
         else:
             logger.debug(
-                "Offset commit succeeded", topics_partitions=topics_partitions
+                "Offset commit succeeded",
+                extra=dict(topics_partitions=topics_partitions)
             )
             if self.commit_success_callback:
                 self.commit_success_callback(topics_partitions)
 
     def _on_error(self, error: KafkaError):
-        logger.error(error.str(), code=error.code(), name=error.name())
+        logger.error(error.str(), extra=dict(error_code=error.code(), error_name=error.name()))
         if self.error_callback:
             self.error_callback(error)
 
     def _on_throttle(self, event):
-        logger.warning("Throttle", tevent=event)
+        logger.warning("Throttle", extra=dict(throttle_event=event))
 
     def _on_stats(self, stats):
         if self.metrics:

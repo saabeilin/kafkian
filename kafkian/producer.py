@@ -3,13 +3,11 @@ import logging
 import socket
 import typing
 
-import structlog
-from confluent_kafka.cimpl import KafkaError
-from confluent_kafka.cimpl import Producer as ConfluentProducer
+from confluent_kafka.cimpl import KafkaError, Producer as ConfluentProducer
 
 from kafkian.serde.serialization import Serializer
 
-logger = structlog.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class Producer:
@@ -57,7 +55,7 @@ class Producer:
         config['throttle_cb'] = self._on_throttle
         config['stats_cb'] = self._on_stats
 
-        logger.info("Initializing producer", config=config)
+        logger.info("Initializing producer", extra=dict(config=config))
         atexit.register(self._close)
         self._producer_impl = self._init_producer_impl(config)
 
@@ -95,30 +93,34 @@ class Producer:
         if err:
             logger.warning(
                 "Producer send failed",
-                error_message=str(err),
-                topic=msg.topic(),
-                key=msg.key(),
-                partition=msg.partition()
+                extra=dict(
+                    error_message=str(err),
+                    topic=msg.topic(),
+                    key=msg.key(),
+                    partition=msg.partition()
+                )
             )
             if self.delivery_error_callback:
                 self.delivery_error_callback(msg, err)
         else:
             logger.debug(
                 "Producer send succeeded",
-                topic=msg.topic(),
-                key=msg.key(),
-                partition=msg.partition()
+                extra=dict(
+                    topic=msg.topic(),
+                    key=msg.key(),
+                    partition=msg.partition()
+                )
             )
             if self.delivery_success_callback:
                 self.delivery_success_callback(msg)
 
     def _on_error(self, error: KafkaError):
-        logger.error(error.str(), code=error.code(), name=error.name())
+        logger.error(error.str(), extra=dict(error_code=error.code(), error_name=error.name()))
         if self.error_callback:
             self.error_callback(error)
 
     def _on_throttle(self, event):
-        logger.warning("Throttle", tevent=event)
+        logger.warning("Throttle", extra=dict(throttle_event=event))
 
     def _on_stats(self, stats):
         if self.metrics:

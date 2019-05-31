@@ -11,4 +11,3 @@ pytest
 pytest-coverage
 pytest-mock
 pytest-sugar
-structlog
