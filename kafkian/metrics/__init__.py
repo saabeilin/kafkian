@@ -2,6 +2,8 @@ import json
 import typing
 from functools import partial
 
+from kafkian.metrics.consts import TOPIC_STATS_LAG, TOPIC_STATS_OFFSETS, TOPIC_STATS_DEBUG
+
 
 class KafkaMetrics:
     """
@@ -15,6 +17,7 @@ class KafkaMetrics:
         self.statsd = statsd
         self.base = basename or 'kafkian'
         self.base_tags = tags or []
+        self.topic_stats_level = TOPIC_STATS_LAG
 
     def send(self, stats: str):
         stats = json.loads(stats)
@@ -53,24 +56,29 @@ class KafkaMetrics:
 
                 tags = self.base_tags + [f'topic:{topic}', f'partition:{partition}']
                 gauge = partial(self.statsd.gauge, tags=tags)
-                gauge(f'{base}.msgq_cnt', partition_stats['msgq_cnt'])
-                gauge(f'{base}.msgq_bytes', partition_stats['msgq_bytes'])
-                gauge(f'{base}.xmit_msgq_cnt', partition_stats['xmit_msgq_cnt'])
-                gauge(f'{base}.xmit_msgq_bytes', partition_stats['xmit_msgq_bytes'])
-                gauge(f'{base}.fetchq_cnt', partition_stats['fetchq_cnt'])
-                gauge(f'{base}.fetchq_size', partition_stats['fetchq_size'])
-                gauge(f'{base}.query_offset', partition_stats['query_offset'])
-                gauge(f'{base}.next_offset', partition_stats['next_offset'])
-                gauge(f'{base}.app_offset', partition_stats['app_offset'])
-                gauge(f'{base}.stored_offset', partition_stats['stored_offset'])
-                gauge(f'{base}.committed_offset', partition_stats['committed_offset'])
-                gauge(f'{base}.lo_offset', partition_stats['lo_offset'])
-                gauge(f'{base}.hi_offset', partition_stats['hi_offset'])
+
                 gauge(f'{base}.consumer_lag', partition_stats['consumer_lag'])
-                gauge(f'{base}.txmsgs', partition_stats['txmsgs'])
-                gauge(f'{base}.txbytes', partition_stats['txbytes'])
-                gauge(f'{base}.msgs', partition_stats['msgs'])
-                gauge(f'{base}.rx_ver_drops', partition_stats['rx_ver_drops'])
+
+                if self.topic_stats_level >= TOPIC_STATS_OFFSETS:
+                    gauge(f'{base}.query_offset', partition_stats['query_offset'])
+                    gauge(f'{base}.next_offset', partition_stats['next_offset'])
+                    gauge(f'{base}.app_offset', partition_stats['app_offset'])
+                    gauge(f'{base}.stored_offset', partition_stats['stored_offset'])
+                    gauge(f'{base}.committed_offset', partition_stats['committed_offset'])
+                    gauge(f'{base}.lo_offset', partition_stats['lo_offset'])
+                    gauge(f'{base}.hi_offset', partition_stats['hi_offset'])
+
+                if self.topic_stats_level >= TOPIC_STATS_DEBUG:
+                    gauge(f'{base}.msgq_cnt', partition_stats['msgq_cnt'])
+                    gauge(f'{base}.msgq_bytes', partition_stats['msgq_bytes'])
+                    gauge(f'{base}.xmit_msgq_cnt', partition_stats['xmit_msgq_cnt'])
+                    gauge(f'{base}.xmit_msgq_bytes', partition_stats['xmit_msgq_bytes'])
+                    gauge(f'{base}.fetchq_cnt', partition_stats['fetchq_cnt'])
+                    gauge(f'{base}.fetchq_size', partition_stats['fetchq_size'])
+                    gauge(f'{base}.txmsgs', partition_stats['txmsgs'])
+                    gauge(f'{base}.txbytes', partition_stats['txbytes'])
+                    gauge(f'{base}.msgs', partition_stats['msgs'])
+                    gauge(f'{base}.rx_ver_drops', partition_stats['rx_ver_drops'])
 
     def _send_cgrp_stats(self, stats: typing.Dict):
         if stats['type'] != 'consumer' or 'cgrp' not in stats:
