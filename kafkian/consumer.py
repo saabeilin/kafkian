@@ -12,15 +12,27 @@ logger = logging.getLogger(__name__)
 
 
 class Consumer:
+    """
+    Kafka consumer with configurable key/value deserializers.
+
+    Can be used both as a context manager or generator.
+
+    Does not subclass directly from Confluent's Consumer,
+    since it's a cimpl and therefore not mockable.
+    """
+
+    # Default configuration. For more details, description and defaults, see
+    # https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     DEFAULT_CONFIG = {
         'api.version.request': True,
+        'log.connection.close': True,
+        'log.thread.name': False,
         'client.id': socket.gethostname(),
         'auto.offset.reset': 'latest',
         'enable.auto.commit': False,
+        'queued.min.messages': 1000,
         'fetch.error.backoff.ms': 0,
         'fetch.wait.max.ms': 10,
-        'log.connection.close': False,
-        'log.thread.name': False,
         'session.timeout.ms': 6000,
         'statistics.interval.ms': 15000
     }
@@ -132,6 +144,7 @@ class Consumer:
     def commit(self, sync=False):
         """
         Commits current consumer offsets.
+
         :param sync: do a synchronous commit (false by default)
         """
         return self._consumer_impl.commit(asynchronous=not sync)

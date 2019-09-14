@@ -18,11 +18,14 @@ class Producer:
     since it's a cimpl and therefore not mockable.
     """
 
+    # Default configuration. For more details, description and defaults, see
+    # https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     DEFAULT_CONFIG = {
-        'acks': 'all',
         'api.version.request': True,
         'client.id': socket.gethostname(),
-        'log.connection.close': False,
+        'log.connection.close': True,
+        'log.thread.name': False,
+        'acks': 'all',
         'max.in.flight': 1,
         'enable.idempotence': True,
         'queue.buffering.max.ms': 100,
@@ -67,17 +70,39 @@ class Producer:
         self.flush()
 
     def flush(self, timeout=None):
+        """
+        Waits for all messages in the producer queue to be delivered and calls registered callbacks
+
+        :param timeout:
+        :return:
+        """
         logger.info("Flushing producer")
-        if timeout:
-            self._producer_impl.flush(timeout)
-        else:
-            self._producer_impl.flush()
+        timeout = timeout or 1
+        self._producer_impl.flush(timeout)
 
     def poll(self, timeout=None):
+        """
+        Polls the underlying producer for events and calls registered callbacks
+
+        :param timeout:
+        :return:
+        """
         timeout = timeout or 1
         return self._producer_impl.poll(timeout)
 
     def produce(self, topic, key, value, sync=False):
+        """
+        Produces (`key`, `value`) to the specified `topic`.
+        If `sync` is True, waits until the message is delivered/acked.
+
+        Note that it does _not_ poll when sync if False.
+
+        :param topic:
+        :param key:
+        :param value:
+        :param sync:
+        :return:
+        """
         key = self.key_serializer.serialize(key, topic, is_key=True)
         # If value is None, it's a "tombstone" and shall be passed through
         if value is not None:
