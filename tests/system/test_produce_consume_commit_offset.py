@@ -37,8 +37,8 @@ def test_produce_many_consume_one(producer, consumer):
     with consumer:
         m = next(consumer)
         committed_offsets = consumer.commit(sync=True)
-        committed = list(filter(lambda tp: tp.partition == m.partition() and tp.topic == m.topic(), committed_offsets))[0]
-        assert committed.offset == m.offset() + 1
+        committed = list(filter(lambda tp: tp.partition == m.partition and tp.topic == m.topic, committed_offsets))[0]
+        assert committed.offset == m.offset + 1
 
 
 def test_produce_many_consume_some(producer, consumer):
@@ -51,5 +51,5 @@ def test_produce_many_consume_some(producer, consumer):
         for _ in range(len(values) // 2):
             m = next(consumer)
         committed_offsets = consumer.commit(sync=True)
-        committed = list(filter(lambda tp: tp.partition == m.partition() and tp.topic == m.topic(), committed_offsets))[0]
-        assert committed.offset == m.offset() + 1
+        committed = list(filter(lambda tp: tp.partition == m.partition and tp.topic == m.topic, committed_offsets))[0]
+        assert committed.offset == m.offset + 1

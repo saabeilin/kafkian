@@ -47,8 +47,8 @@ def test_consume_one_b(consumer):
 
     with patch('kafkian.consumer.Consumer._poll', Mock(return_value=m)):
         m = next(consumer)
-    assert m.key() == key
-    assert m.value() == value
+    assert m.key == key
+    assert m.value == value
 
 
 def test_consume_one_tombstone(consumer):
@@ -61,5 +61,5 @@ def test_consume_one_tombstone(consumer):
 
     with patch('kafkian.consumer.Consumer._poll', Mock(return_value=m)):
         m = next(consumer)
-    assert m.key() == key
-    assert m.value() == value
+    assert m.key == key
+    assert m.value == value

@@ -71,8 +71,8 @@ def test_produce_consume_one(producer, consumer):
     with consumer:
         m = next(consumer)
         consumer.commit(sync=True)
-    assert m.key() == key
-    assert m.value() == value
+    assert m.key == key
+    assert m.value == value
 
 
 def test_produce_consume_one_tombstone(producer, consumer):
@@ -83,5 +83,5 @@ def test_produce_consume_one_tombstone(producer, consumer):
     with consumer:
         m = next(consumer)
         consumer.commit(sync=True)
-    assert m.key() == key
-    assert m.value() == value
+    assert m.key == key
+    assert m.value == value

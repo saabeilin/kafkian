@@ -68,8 +68,8 @@ def test_consumer_ignores_partition_eof(consumer):
 
     with patch('kafkian.consumer.Consumer._poll', next_message):
         m = next(consumer)
-    assert m.key() == key
-    assert m.value() == value
+    assert m.key == key
+    assert m.value == value
 
 
 def test_consumer_generator_raises_and_closed_on_error(consumer):
