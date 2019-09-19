@@ -48,8 +48,8 @@ def test_produce_consume_one(producer, consumer):
     # # producer.flush()
     # # producer.poll()
     # m = next(consumer)
-    # assert m.key() == key
-    # assert m.value() == value
+    # assert m.key == key
+    # assert m.value == value
 
 
 def test_produce_consume_one_tombstone(producer, consumer):

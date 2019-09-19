@@ -133,15 +133,21 @@ for message in consumer:
     consumer.commit()
 ```
 
-Here, `message` is an instance of `Message` class exposed by the 
-confluent-kafka-python, access the decoded key and value via `.key()` 
-and `.value()` respectively.
+Here, `message` is an instance of `Message` class, that wraps the original 
+message exposed by the confluent-kafka-python, and you can access 
+the decoded key and value via `.key` and `.value` properties respectively.
+
+Notice that deserialization will happen on first access of the properties,
+so you can properly handle deserialization errors (log it, send to DLQ, etc)
 
 Both key and value are wrapped in a dynamically-generated class,
 that has the full name same as the corresponding Avro schema full name.
 In the example above, the value would have class named `auth.users.UserCreated`.
 
 Avro schemas for the consumed message key and value are accessible via `.schema` property.
+
+In addition, `topic`, `partition`, `offset`, `timestamp`, `headers` properties
+are available.
 
 ## Contributing
 This library is, as stated, quite opinionated, however, I'm open to suggestions.

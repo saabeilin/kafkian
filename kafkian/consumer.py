@@ -6,6 +6,7 @@ import typing
 from confluent_kafka.cimpl import Consumer as ConfluentConsumer, KafkaError
 
 from kafkian.exceptions import KafkianException
+from kafkian.message import Message
 from kafkian.serde.deserialization import Deserializer
 
 logger = logging.getLogger(__name__)
@@ -130,16 +131,7 @@ class Consumer:
                 if message.error().code() == KafkaError._PARTITION_EOF:
                     continue
                 raise KafkianException(message.error())
-            yield self._deserialize(message)
-
-    def _deserialize(self, message):
-        message.set_key(self.key_deserializer.deserialize(message.key()))
-        value = message.value()
-        # If value is None, it's a tombstone, just pass it through
-        if value is not None:
-            value = self.value_deserializer.deserialize(value)
-        message.set_value(value)
-        return message
+            yield Message(message, self.key_deserializer, self.value_deserializer)
 
     def commit(self, sync=False):
         """

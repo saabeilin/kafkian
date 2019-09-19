@@ -93,8 +93,8 @@ def test_consume_one_avro_value(consumer):
 
     with patch('kafkian.consumer.Consumer._poll', Mock(return_value=m)):
         received = next(consumer)
-    assert received.key() == key
-    assert received.value() == value
+    assert received.key == key
+    assert received.value == value
 
 
 def test_consume_one_tombstone(consumer):
@@ -107,5 +107,5 @@ def test_consume_one_tombstone(consumer):
 
     with patch('kafkian.consumer.Consumer._poll', Mock(return_value=m)):
         m = next(consumer)
-    assert m.key() == key
-    assert m.value() == value
+    assert m.key == key
+    assert m.value == value
