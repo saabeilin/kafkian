@@ -7,6 +7,7 @@ from confluent_kafka import avro
 from kafkian import producer
 from kafkian.serde.avroserdebase import AvroRecord
 from kafkian.serde.serialization import AvroSerializer, Serializer
+
 from tests.unit.conftest import producer_produce_mock
 
 KAFKA_BOOTSTRAP_SERVERS = 'localhost:29092'

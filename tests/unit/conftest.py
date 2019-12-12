@@ -1,4 +1,4 @@
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
 
 producer_produce_mock = Mock()
 producer_poll_mock = Mock(return_value=1)

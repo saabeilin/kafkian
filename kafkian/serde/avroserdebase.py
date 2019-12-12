@@ -11,6 +11,7 @@ class HasSchemaMixin:
     """
     A mixing for decoded Avro record to make able to add schema attribute
     """
+
     @property
     def schema(self):
         """
@@ -31,11 +32,11 @@ def _wrap(value, schema):
     :param schema: corresponding Avro schema used to decode value
     :return: An instance of a dynamically created class with schema fullname
     """
-    if hasattr(schema, 'fullname'):
+    if hasattr(schema, "fullname"):
         name = schema.fullname
-    elif hasattr(schema, 'namespace'):
+    elif hasattr(schema, "namespace"):
         name = "{namespace}.{name}".format(namespace=schema.namespace, name=schema.name)
-    elif hasattr(schema, 'name'):
+    elif hasattr(schema, "name"):
         name = schema.name
     else:
         name = schema.type
@@ -67,11 +68,8 @@ class AvroSerDeBase(ConfluentMessageSerializer):
             raise SerializerError("message is too small to decode")
 
         with ContextStringIO(message) as payload:
-            magic, schema_id = struct.unpack('>bI', payload.read(5))
+            magic, schema_id = struct.unpack(">bI", payload.read(5))
             if magic != MAGIC_BYTE:
                 raise SerializerError("message does not start with magic byte")
             decoder_func = self._get_decoder_func(schema_id, payload)
-            return _wrap(
-                decoder_func(payload),
-                self.registry_client.get_by_id(schema_id)
-            )
+            return _wrap(decoder_func(payload), self.registry_client.get_by_id(schema_id))

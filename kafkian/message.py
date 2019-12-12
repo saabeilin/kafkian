@@ -1,6 +1,7 @@
 from typing import Optional
 
-from confluent_kafka.cimpl import Message as ConfluentKafkaMessage, TIMESTAMP_NOT_AVAILABLE
+from confluent_kafka.cimpl import TIMESTAMP_NOT_AVAILABLE
+from confluent_kafka.cimpl import Message as ConfluentKafkaMessage
 
 from kafkian.serde.deserialization import Deserializer
 
@@ -17,16 +18,16 @@ class Message:
     This class wraps cimpl.Message from confluent_kafka
     and not supposed to be user-instantiated.
     """
-    def __init__(self, 
-                 message: ConfluentKafkaMessage, 
-                 key_deserializer: Deserializer,
-                 value_deserializer: Deserializer):
+
+    def __init__(
+        self, message: ConfluentKafkaMessage, key_deserializer: Deserializer, value_deserializer: Deserializer
+    ):
         self._message = message
         self._key_deserializer = key_deserializer
         self._value_deserializer = value_deserializer
         self._deserialized_key = None
         self._deserialized_value = None
-    
+
     @property
     def key(self):
         """
@@ -38,7 +39,7 @@ class Message:
             return None
         self._deserialized_key = self._key_deserializer.deserialize(self._message.key())
         return self._deserialized_key
-    
+
     @property
     def value(self):
         """

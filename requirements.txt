@@ -5,9 +5,12 @@ fastavro>=0.18.0
 codecov
 flake8
 flake8-isort
+flake8-black
+isort
+black
 ipdb
 mypy
 pytest
-pytest-coverage
+pytest-cov
 pytest-mock
 pytest-sugar

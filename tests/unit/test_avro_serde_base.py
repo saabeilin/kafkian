@@ -2,7 +2,6 @@ from confluent_kafka import avro
 
 from kafkian.serde.avroserdebase import HasSchemaMixin, _wrap
 
-
 RECORD_SCHEMA = avro.loads("""
 {
     "name": "SomethingHappened",

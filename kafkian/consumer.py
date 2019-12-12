@@ -3,10 +3,12 @@ import logging
 import socket
 import typing
 
-from confluent_kafka.cimpl import Consumer as ConfluentConsumer, KafkaError
+from confluent_kafka.cimpl import Consumer as ConfluentConsumer
+from confluent_kafka.cimpl import KafkaError
 
 from kafkian.exceptions import KafkianException
 from kafkian.message import Message
+from kafkian.metrics import KafkaMetrics
 from kafkian.serde.deserialization import Deserializer
 
 logger = logging.getLogger(__name__)
@@ -25,29 +27,29 @@ class Consumer:
     # Default configuration. For more details, description and defaults, see
     # https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     DEFAULT_CONFIG = {
-        'api.version.request': True,
-        'log.connection.close': True,
-        'log.thread.name': False,
-        'client.id': socket.gethostname(),
-        'auto.offset.reset': 'latest',
-        'enable.auto.commit': False,
-        'queued.min.messages': 1000,
-        'fetch.error.backoff.ms': 0,
-        'fetch.wait.max.ms': 10,
-        'session.timeout.ms': 6000,
-        'statistics.interval.ms': 15000
+        "api.version.request": True,
+        "log.connection.close": True,
+        "log.thread.name": False,
+        "client.id": socket.gethostname(),
+        "auto.offset.reset": "latest",
+        "enable.auto.commit": False,
+        "queued.min.messages": 1000,
+        "fetch.error.backoff.ms": 0,
+        "fetch.wait.max.ms": 10,
+        "session.timeout.ms": 6000,
+        "statistics.interval.ms": 15000,
     }
 
     def __init__(
-            self,
-            config: typing.Dict,
-            topics: typing.Iterable,
-            value_deserializer=Deserializer(),
-            key_deserializer=Deserializer(),
-            error_callback: typing.Optional[typing.Callable] = None,
-            commit_success_callback: typing.Optional[typing.Callable] = None,
-            commit_error_callback: typing.Optional[typing.Callable] = None,
-            metrics=None
+        self,
+        config: typing.Dict,
+        topics: typing.Iterable,
+        value_deserializer=Deserializer(),
+        key_deserializer=Deserializer(),
+        error_callback: typing.Optional[typing.Callable] = None,
+        commit_success_callback: typing.Optional[typing.Callable] = None,
+        commit_error_callback: typing.Optional[typing.Callable] = None,
+        metrics: typing.Optional[KafkaMetrics] = None,
     ) -> None:
 
         self._subscribed = False
@@ -64,10 +66,10 @@ class Consumer:
         self.metrics = metrics
 
         config = {**self.DEFAULT_CONFIG, **config}
-        config['on_commit'] = self._on_commit
-        config['error_cb'] = self._on_error
-        config['throttle_cb'] = self._on_throttle
-        config['stats_cb'] = self._on_stats
+        config["on_commit"] = self._on_commit
+        config["error_cb"] = self._on_error
+        config["throttle_cb"] = self._on_throttle
+        config["stats_cb"] = self._on_stats
 
         logger.info("Initializing consumer", extra=dict(config=config))
         atexit.register(self._close)
@@ -76,7 +78,7 @@ class Consumer:
 
     @staticmethod
     def _init_consumer_impl(config):
-        return ConfluentConsumer(config, logger=logging.getLogger('librdkafka.consumer'))
+        return ConfluentConsumer(config, logger=logging.getLogger("librdkafka.consumer"))
 
     def _subscribe(self):
         if self._subscribed:
@@ -143,17 +145,11 @@ class Consumer:
 
     def _on_commit(self, err, topics_partitions):
         if err:
-            logger.warning(
-                "Offset commit failed",
-                extra=dict(error_message=str(err))
-            )
+            logger.warning("Offset commit failed", extra=dict(error_message=str(err)))
             if self.commit_error_callback:
                 self.commit_error_callback(topics_partitions, err)
         else:
-            logger.debug(
-                "Offset commit succeeded",
-                extra=dict(topics_partitions=topics_partitions)
-            )
+            logger.debug("Offset commit succeeded", extra=dict(topics_partitions=topics_partitions))
             if self.commit_success_callback:
                 self.commit_success_callback(topics_partitions)
 

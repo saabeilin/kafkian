@@ -1,5 +1,5 @@
 import uuid
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from confluent_kafka import avro

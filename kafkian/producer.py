@@ -3,7 +3,8 @@ import logging
 import socket
 import typing
 
-from confluent_kafka.cimpl import KafkaError, Producer as ConfluentProducer
+from confluent_kafka.cimpl import KafkaError
+from confluent_kafka.cimpl import Producer as ConfluentProducer
 
 from kafkian.serde.serialization import Serializer
 
@@ -21,26 +22,26 @@ class Producer:
     # Default configuration. For more details, description and defaults, see
     # https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
     DEFAULT_CONFIG = {
-        'api.version.request': True,
-        'client.id': socket.gethostname(),
-        'log.connection.close': True,
-        'log.thread.name': False,
-        'acks': 'all',
-        'max.in.flight': 1,
-        'enable.idempotence': True,
-        'queue.buffering.max.ms': 100,
-        'statistics.interval.ms': 15000,
+        "api.version.request": True,
+        "client.id": socket.gethostname(),
+        "log.connection.close": True,
+        "log.thread.name": False,
+        "acks": "all",
+        "max.in.flight": 1,
+        "enable.idempotence": True,
+        "queue.buffering.max.ms": 100,
+        "statistics.interval.ms": 15000,
     }
 
     def __init__(
-            self,
-            config: typing.Dict,
-            value_serializer=Serializer(),
-            key_serializer=Serializer(),
-            error_callback: typing.Optional[typing.Callable] = None,
-            delivery_success_callback: typing.Optional[typing.Callable] = None,
-            delivery_error_callback: typing.Optional[typing.Callable] = None,
-            metrics=None
+        self,
+        config: typing.Dict,
+        value_serializer=Serializer(),
+        key_serializer=Serializer(),
+        error_callback: typing.Optional[typing.Callable] = None,
+        delivery_success_callback: typing.Optional[typing.Callable] = None,
+        delivery_error_callback: typing.Optional[typing.Callable] = None,
+        metrics=None,
     ) -> None:
 
         self.value_serializer = value_serializer
@@ -53,10 +54,10 @@ class Producer:
         self.metrics = metrics
 
         config = {**self.DEFAULT_CONFIG, **config}
-        config['on_delivery'] = self._on_delivery
-        config['error_cb'] = self._on_error
-        config['throttle_cb'] = self._on_throttle
-        config['stats_cb'] = self._on_stats
+        config["on_delivery"] = self._on_delivery
+        config["error_cb"] = self._on_error
+        config["throttle_cb"] = self._on_throttle
+        config["stats_cb"] = self._on_stats
 
         logger.info("Initializing producer", extra=dict(config=config))
         atexit.register(self._close)
@@ -64,7 +65,7 @@ class Producer:
 
     @staticmethod
     def _init_producer_impl(config):
-        return ConfluentProducer(config, logger=logging.getLogger('librdkafka.producer'))
+        return ConfluentProducer(config, logger=logging.getLogger("librdkafka.producer"))
 
     def _close(self):
         self.flush()
@@ -118,23 +119,13 @@ class Producer:
         if err:
             logger.warning(
                 "Producer send failed",
-                extra=dict(
-                    error_message=str(err),
-                    topic=msg.topic(),
-                    key=msg.key(),
-                    partition=msg.partition()
-                )
+                extra=dict(error_message=str(err), topic=msg.topic(), key=msg.key(), partition=msg.partition()),
             )
             if self.delivery_error_callback:
                 self.delivery_error_callback(msg, err)
         else:
             logger.debug(
-                "Producer send succeeded",
-                extra=dict(
-                    topic=msg.topic(),
-                    key=msg.key(),
-                    partition=msg.partition()
-                )
+                "Producer send succeeded", extra=dict(topic=msg.topic(), key=msg.key(), partition=msg.partition())
             )
             if self.delivery_success_callback:
                 self.delivery_success_callback(msg)

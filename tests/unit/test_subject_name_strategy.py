@@ -1,7 +1,7 @@
 import pytest
 from confluent_kafka import avro
 
-from kafkian.serde.serialization import SubjectNameStrategy, AvroSerializer
+from kafkian.serde.serialization import AvroSerializer, SubjectNameStrategy
 
 value_schema_str = """
 {

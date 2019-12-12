@@ -4,7 +4,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from kafkian import producer
-from kafkian.serde.serialization import Serializer, AvroStringKeySerializer
+from kafkian.serde.serialization import AvroStringKeySerializer, Serializer
+
 from tests.unit.conftest import producer_produce_mock
 
 KAFKA_BOOTSTRAP_SERVERS = 'localhost:29092'

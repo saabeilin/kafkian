@@ -1,3 +1,4 @@
+import abc
 from enum import Enum
 
 from confluent_kafka import avro
@@ -17,6 +18,7 @@ class Serializer:
     Base class for all key and value serializers.
     This default implementation returns the value intact.
     """
+
     def __init__(self, **kwargs):
         pass
 
@@ -24,12 +26,14 @@ class Serializer:
         return value
 
 
-class AvroSerializer(Serializer):
-    def __init__(self,
-                 schema_registry_url: str,
-                 auto_register_schemas: bool = True,
-                 subject_name_strategy: SubjectNameStrategy = SubjectNameStrategy.RecordNameStrategy,
-                 **kwargs):
+class AvroSerializerBase(Serializer):
+    def __init__(
+        self,
+        schema_registry_url: str,
+        auto_register_schemas: bool = True,
+        subject_name_strategy: SubjectNameStrategy = SubjectNameStrategy.RecordNameStrategy,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         schema_registry_url = schema_registry_url
         self.schema_registry = CachedSchemaRegistryClient(schema_registry_url)
@@ -39,13 +43,13 @@ class AvroSerializer(Serializer):
 
     def _get_subject(self, topic: str, schema, is_key=False):
         if self.subject_name_strategy == SubjectNameStrategy.TopicNameStrategy:
-            subject = topic + ('-key' if is_key else '-value')
+            subject = topic + ("-key" if is_key else "-value")
         elif self.subject_name_strategy == SubjectNameStrategy.RecordNameStrategy:
             subject = schema.fullname
         elif self.subject_name_strategy == SubjectNameStrategy.TopicRecordNameStrategy:
-            subject = '{}-{}'.format(topic, schema.fullname)
+            subject = "{}-{}".format(topic, schema.fullname)
         else:
-            raise ValueError('Unknown SubjectNameStrategy')
+            raise ValueError("Unknown SubjectNameStrategy")
         return subject
 
     def _ensure_schema(self, topic: str, schema, is_key=False):
@@ -59,12 +63,18 @@ class AvroSerializer(Serializer):
 
         return schema_id, schema
 
+    @abc.abstractmethod
+    def serialize(self, value, topic, **kwargs):
+        raise NotImplementedError
+
+
+class AvroSerializer(AvroSerializerBase):
     def serialize(self, value: AvroRecord, topic: str, is_key=False, **kwargs):
         schema_id, _ = self._ensure_schema(topic, value.schema, is_key)
         return self._serializer_impl.encode_record_with_schema_id(schema_id, value, is_key)
 
 
-class AvroStringKeySerializer(AvroSerializer):
+class AvroStringKeySerializer(AvroSerializerBase):
     """
     A specialized serializer for generic String keys,
     serialized with a simple value avro schema.

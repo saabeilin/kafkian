@@ -2,7 +2,7 @@ import uuid
 
 import pytest
 
-from kafkian import Producer, Consumer
+from kafkian import Consumer, Producer
 
 KAFKA_BOOTSTRAP_SERVERS = 'localhost:29092'
 TEST_TOPIC = 'test.test.' + str(uuid.uuid4())
