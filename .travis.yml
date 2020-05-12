@@ -7,7 +7,7 @@ env:
   - CONFLUENT_KAFKA_VERSION=1.4.0
 install:
   - pip install -r requirements-test.txt
-  - pip install confluent-kafka[avro]=$CONFLUENT_KAFKA_VERSION
+  - pip install confluent-kafka[avro]==$CONFLUENT_KAFKA_VERSION
 #  - pip install -q -e .
 matrix:
   include:
