@@ -4,17 +4,16 @@ env:
   - CONFLUENT_KAFKA_VERSION=1.1.0
   - CONFLUENT_KAFKA_VERSION=1.2.0
   - CONFLUENT_KAFKA_VERSION=1.3.0
-  - CONFLUENT_KAFKA_VERSION=1.4.0
+  - CONFLUENT_KAFKA_VERSION=1.4.1
 install:
   - pip install -r requirements-test.txt
   - pip install confluent-kafka[avro]==$CONFLUENT_KAFKA_VERSION
 #  - pip install -q -e .
 matrix:
   include:
-    - python: 3.5
-    - python: 3.6
+#    - python: 3.5
+#    - python: 3.6
     - python: 3.7
     - python: 3.8
-      dist: xenial
 script:
   - pytest -v tests/unit/
