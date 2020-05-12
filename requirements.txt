@@ -1,16 +1,2 @@
-avro-python3>=1.8.2
-confluent-kafka>=1.0.0
-fastavro>=0.18.0
-
-codecov
-flake8
-flake8-isort
-flake8-black
-isort
-black
-ipdb
-mypy
-pytest
-pytest-cov
-pytest-mock
-pytest-sugar
+-r requirements-test.txt
+-r requirement-dev.txt

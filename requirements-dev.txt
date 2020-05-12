@@ -1,0 +1,10 @@
+-r requirements-test.txt
+
+avro-python3==1.8.2
+confluent-kafka[avro]==1.1.0
+fastavro==0.18.0
+
+black
+ipdb
+mypy
+

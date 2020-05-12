@@ -1,0 +1,9 @@
+codecov
+flake8
+flake8-isort
+flake8-black
+isort
+pytest
+pytest-cov
+pytest-mock
+pytest-sugar
