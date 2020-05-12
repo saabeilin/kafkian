@@ -1,5 +1,10 @@
 sudo: false
 language: python
+python:
+  # - python: 3.5
+  # - python: 3.6
+  - 3.7
+  - 3.8
 env:
   - CONFLUENT_KAFKA_VERSION=1.1.0
   - CONFLUENT_KAFKA_VERSION=1.2.0
@@ -9,11 +14,5 @@ install:
   - pip install -r requirements-test.txt
   - pip install confluent-kafka[avro]==$CONFLUENT_KAFKA_VERSION
 #  - pip install -q -e .
-matrix:
-  include:
-#    - python: 3.5
-#    - python: 3.6
-    - python: 3.7
-    - python: 3.8
 script:
   - pytest -v tests/unit/
