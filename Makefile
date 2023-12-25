@@ -5,4 +5,16 @@ check:
 	mypy --ignore-missing-imports kafkian/
 
 unittest:
-	pytest -v --ff -x tests/unit/
+	PYTHONPATH=. pytest -v --ff -x tests/unit/
+
+kafka:
+	docker-compose up -d
+
+systemtest: kafka
+	pytest -v --ff tests/system
+
+black:
+	black kafkian/ tests/
+
+isort:
+	isort kafkian/ tests/
