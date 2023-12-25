@@ -1,0 +1,41 @@
+name: code-checks
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+
+  code-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install tools
+        run: pip3 install flake8 mypy isort black
+      - name: Run flake8
+        run: python3 -m flake8  --show-source --count --statistics kafkian/ tests/
+      - name: Run mypy
+        run: mypy kafkian/
+        continue-on-error: true
+      - name: Run black check
+        run: black --check kafkian/ tests/
+      - name: Run isort check
+        run: isort --check  kafkian/ tests/
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: install requirements
+        run: pip3 install -r requirements-test.txt
+      - name: Run unit-tests
+        run: make unittest
