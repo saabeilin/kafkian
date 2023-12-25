@@ -2,7 +2,8 @@ from confluent_kafka import avro
 
 from kafkian.serde.avroserdebase import HasSchemaMixin, _wrap
 
-RECORD_SCHEMA = avro.loads("""
+RECORD_SCHEMA = avro.loads(
+    """
 {
     "name": "SomethingHappened",
     "type": "record",
@@ -26,7 +27,8 @@ RECORD_SCHEMA = avro.loads("""
         }
     ]
 }
-""")
+"""
+)
 
 
 KEY_SCHEMA = avro.loads("""{"type": "string"}""")
@@ -40,7 +42,7 @@ def test_schema_mixin_wrapper_record_schema():
         assert isinstance(wrapped, base_class)
         assert isinstance(wrapped, HasSchemaMixin)
         assert wrapped.schema is RECORD_SCHEMA
-        assert wrapped.__class__.__name__ == 'python.test.basic.SomethingHappened'
+        assert wrapped.__class__.__name__ == "python.test.basic.SomethingHappened"
 
 
 def test_schema_mixin_wrapper_key_schema():

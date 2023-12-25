@@ -5,13 +5,13 @@ import pytest
 
 from kafkian import Consumer
 
-KAFKA_BOOTSTRAP_SERVERS = 'localhost:29092'
-TEST_TOPIC = 'test.test.' + str(uuid.uuid4())
+KAFKA_BOOTSTRAP_SERVERS = "localhost:29092"
+TEST_TOPIC = "test.test." + str(uuid.uuid4())
 
 CONSUMER_CONFIG = {
-    'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
-    'auto.offset.reset': 'earliest',
-    'group.id': str(uuid.uuid4())
+    "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
+    "auto.offset.reset": "earliest",
+    "group.id": str(uuid.uuid4()),
 }
 
 
@@ -38,28 +38,28 @@ class MockMessage(Mock):
 
 
 def test_consume_one_b(consumer):
-    key = bytes(str(uuid.uuid4()), encoding='utf8')
-    value = bytes(str(uuid.uuid4()), encoding='utf8')
+    key = bytes(str(uuid.uuid4()), encoding="utf8")
+    value = bytes(str(uuid.uuid4()), encoding="utf8")
 
     m = MockMessage()
     m.set_key(key)
     m.set_value(value)
 
-    with patch('kafkian.consumer.Consumer._poll', Mock(return_value=m)):
+    with patch("kafkian.consumer.Consumer._poll", Mock(return_value=m)):
         m = next(consumer)
     assert m.key == key
     assert m.value == value
 
 
 def test_consume_one_tombstone(consumer):
-    key = bytes(str(uuid.uuid4()), encoding='utf8')
+    key = bytes(str(uuid.uuid4()), encoding="utf8")
     value = None
 
     m = MockMessage()
     m.set_key(key)
     m.set_value(value)
 
-    with patch('kafkian.consumer.Consumer._poll', Mock(return_value=m)):
+    with patch("kafkian.consumer.Consumer._poll", Mock(return_value=m)):
         m = next(consumer)
     assert m.key == key
     assert m.value == value

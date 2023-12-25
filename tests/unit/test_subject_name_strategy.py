@@ -21,15 +21,15 @@ schema = avro.loads(value_schema_str)
 
 
 @pytest.mark.parametrize(
-    'strategy,is_key,subject',
+    "strategy,is_key,subject",
     (
-            (SubjectNameStrategy.TopicNameStrategy, False, 'topic-value'),
-            (SubjectNameStrategy.TopicNameStrategy, True, 'topic-key'),
-            (SubjectNameStrategy.RecordNameStrategy, False, 'my.test.Value'),
-            (SubjectNameStrategy.RecordNameStrategy, True, 'my.test.Value'),
-            (SubjectNameStrategy.TopicRecordNameStrategy, False, 'topic-my.test.Value'),
-            (SubjectNameStrategy.TopicRecordNameStrategy, True, 'topic-my.test.Value'),
-    )
+        (SubjectNameStrategy.TopicNameStrategy, False, "topic-value"),
+        (SubjectNameStrategy.TopicNameStrategy, True, "topic-key"),
+        (SubjectNameStrategy.RecordNameStrategy, False, "my.test.Value"),
+        (SubjectNameStrategy.RecordNameStrategy, True, "my.test.Value"),
+        (SubjectNameStrategy.TopicRecordNameStrategy, False, "topic-my.test.Value"),
+        (SubjectNameStrategy.TopicRecordNameStrategy, True, "topic-my.test.Value"),
+    ),
 )
 def test_subject_name_strategy(strategy, is_key, subject):
     ser = AvroSerializer("http://nxhost:2181", subject_name_strategy=strategy)

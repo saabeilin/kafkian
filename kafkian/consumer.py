@@ -51,7 +51,6 @@ class Consumer:
         commit_error_callback: typing.Optional[typing.Callable] = None,
         metrics: typing.Optional[KafkaMetrics] = None,
     ) -> None:
-
         self._subscribed = False
         self.topics = list(topics)
         self.non_blocking = False  # TODO
@@ -78,9 +77,11 @@ class Consumer:
 
     @staticmethod
     def _init_consumer_impl(config):
-        return ConfluentConsumer(config, logger=logging.getLogger("librdkafka.consumer"))
+        return ConfluentConsumer(
+            config,  # logger=logging.getLogger("librdkafka.consumer")
+        )
 
-    def _subscribe(self):
+    def _subscribe(self) -> None:
         if self._subscribed:
             return
         self._consumer_impl.subscribe(self.topics)
@@ -105,7 +106,7 @@ class Consumer:
     def __exit__(self, exc_type, exc_value, tb):
         self._close()
 
-    def _close(self):
+    def _close(self) -> None:
         """
         Close down the consumer cleanly accordingly:
          - stops consuming
@@ -143,24 +144,29 @@ class Consumer:
         """
         return self._consumer_impl.commit(asynchronous=not sync)
 
-    def _on_commit(self, err, topics_partitions):
+    def _on_commit(self, err, topics_partitions) -> None:
         if err:
             logger.warning("Offset commit failed", extra=dict(error_message=str(err)))
             if self.commit_error_callback:
                 self.commit_error_callback(topics_partitions, err)
         else:
-            logger.debug("Offset commit succeeded", extra=dict(topics_partitions=topics_partitions))
+            logger.debug(
+                "Offset commit succeeded",
+                extra=dict(topics_partitions=topics_partitions),
+            )
             if self.commit_success_callback:
                 self.commit_success_callback(topics_partitions)
 
-    def _on_error(self, error: KafkaError):
-        logger.error(error.str(), extra=dict(error_code=error.code(), error_name=error.name()))
+    def _on_error(self, error: KafkaError) -> None:
+        logger.error(
+            error.str(), extra=dict(error_code=error.code(), error_name=error.name())
+        )
         if self.error_callback:
             self.error_callback(error)
 
-    def _on_throttle(self, event):
+    def _on_throttle(self, event) -> None:
         logger.warning("Throttle", extra=dict(throttle_event=event))
 
-    def _on_stats(self, stats):
+    def _on_stats(self, stats: str) -> None:
         if self.metrics:
             self.metrics.send(stats)

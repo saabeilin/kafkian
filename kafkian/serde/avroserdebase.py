@@ -72,4 +72,6 @@ class AvroSerDeBase(ConfluentMessageSerializer):
             if magic != MAGIC_BYTE:
                 raise SerializerError("message does not start with magic byte")
             decoder_func = self._get_decoder_func(schema_id, payload)
-            return _wrap(decoder_func(payload), self.registry_client.get_by_id(schema_id))
+            return _wrap(
+                decoder_func(payload), self.registry_client.get_by_id(schema_id)
+            )
