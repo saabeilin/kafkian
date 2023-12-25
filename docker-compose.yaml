@@ -21,6 +21,7 @@ services:
     volumes:
       - test-zookeeper-1-data:/var/lib/zookeeper/data/
       - test-zookeeper-1-log:/var/lib/zookeeper/log/
+    restart: "always"
 
   test-kafka-1:
     image: confluentinc/cp-kafka:5.3.1
@@ -47,6 +48,7 @@ services:
       KAFKA_MIN_INSYNC_REPLICAS: 1
     volumes:
       - test-kafka-1-data:/var/lib/kafka/data/
+    restart: "always"
 
   test-schema-registry:
     image: confluentinc/cp-schema-registry:5.3.1
@@ -60,6 +62,7 @@ services:
     environment:
       SCHEMA_REGISTRY_HOST_NAME: "test-schema-registry"
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'test-zookeeper-1:2181'
+    restart: "always"
 
 volumes:
     test-zookeeper-1-data:
