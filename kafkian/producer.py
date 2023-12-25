@@ -43,7 +43,6 @@ class Producer:
         delivery_error_callback: typing.Optional[typing.Callable] = None,
         metrics=None,
     ) -> None:
-
         self.value_serializer = value_serializer
         self.key_serializer = key_serializer
 
@@ -65,14 +64,17 @@ class Producer:
 
     @staticmethod
     def _init_producer_impl(config):
-        return ConfluentProducer(config, logger=logging.getLogger("librdkafka.producer"))
+        return ConfluentProducer(
+            config, logger=logging.getLogger("librdkafka.producer")
+        )
 
     def _close(self):
         self.flush()
 
     def flush(self, timeout=None):
         """
-        Waits for all messages in the producer queue to be delivered and calls registered callbacks
+        Waits for all messages in the producer queue to be delivered
+        and calls registered callbacks
 
         :param timeout:
         :return:
@@ -119,19 +121,27 @@ class Producer:
         if err:
             logger.warning(
                 "Producer send failed",
-                extra=dict(error_message=str(err), topic=msg.topic(), key=msg.key(), partition=msg.partition()),
+                extra=dict(
+                    error_message=str(err),
+                    topic=msg.topic(),
+                    key=msg.key(),
+                    partition=msg.partition(),
+                ),
             )
             if self.delivery_error_callback:
                 self.delivery_error_callback(msg, err)
         else:
             logger.debug(
-                "Producer send succeeded", extra=dict(topic=msg.topic(), key=msg.key(), partition=msg.partition())
+                "Producer send succeeded",
+                extra=dict(topic=msg.topic(), key=msg.key(), partition=msg.partition()),
             )
             if self.delivery_success_callback:
                 self.delivery_success_callback(msg)
 
     def _on_error(self, error: KafkaError):
-        logger.error(error.str(), extra=dict(error_code=error.code(), error_name=error.name()))
+        logger.error(
+            error.str(), extra=dict(error_code=error.code(), error_name=error.name())
+        )
         if self.error_callback:
             self.error_callback(error)
 

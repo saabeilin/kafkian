@@ -71,7 +71,9 @@ class AvroSerializerBase(Serializer):
 class AvroSerializer(AvroSerializerBase):
     def serialize(self, value: AvroRecord, topic: str, is_key=False, **kwargs):
         schema_id, _ = self._ensure_schema(topic, value.schema, is_key)
-        return self._serializer_impl.encode_record_with_schema_id(schema_id, value, is_key)
+        return self._serializer_impl.encode_record_with_schema_id(
+            schema_id, value, is_key
+        )
 
 
 class AvroStringKeySerializer(AvroSerializerBase):
@@ -85,4 +87,6 @@ class AvroStringKeySerializer(AvroSerializerBase):
     def serialize(self, value: str, topic: str, is_key=False, **kwargs):
         assert is_key
         schema_id, _ = self._ensure_schema(topic, self.KEY_SCHEMA, is_key)
-        return self._serializer_impl.encode_record_with_schema_id(schema_id, value, is_key)
+        return self._serializer_impl.encode_record_with_schema_id(
+            schema_id, value, is_key
+        )

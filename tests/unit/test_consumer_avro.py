@@ -9,14 +9,14 @@ from kafkian.serde.avroserdebase import AvroRecord
 from kafkian.serde.deserialization import AvroDeserializer
 from kafkian.serde.serialization import AvroSerializer
 
-KAFKA_BOOTSTRAP_SERVERS = 'localhost:29092'
-TEST_TOPIC = 'test.test.' + str(uuid.uuid4())
-SCHEMA_REGISTRY_URL = 'https://localhost:28081'
+KAFKA_BOOTSTRAP_SERVERS = "localhost:29092"
+TEST_TOPIC = "test.test." + str(uuid.uuid4())
+SCHEMA_REGISTRY_URL = "https://localhost:28081"
 
 CONSUMER_CONFIG = {
-    'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
-    'auto.offset.reset': 'earliest',
-    'group.id': str(uuid.uuid4())
+    "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
+    "auto.offset.reset": "earliest",
+    "group.id": str(uuid.uuid4()),
 }
 
 
@@ -39,9 +39,7 @@ class Message(AvroRecord):
     _schema = avro.loads(value_schema_str)
 
 
-message = Message({
-    'name': 'some name'
-})
+message = Message({"name": "some name"})
 
 
 serializer = AvroSerializer(schema_registry_url=SCHEMA_REGISTRY_URL)
@@ -50,8 +48,7 @@ deserializer = AvroDeserializer(schema_registry_url=SCHEMA_REGISTRY_URL)
 
 @pytest.fixture
 def consumer():
-    return Consumer(CONSUMER_CONFIG, [TEST_TOPIC],
-                    value_deserializer=deserializer)
+    return Consumer(CONSUMER_CONFIG, [TEST_TOPIC], value_deserializer=deserializer)
 
 
 class MockMessage(Mock):
@@ -72,40 +69,40 @@ class MockMessage(Mock):
 
 
 @patch(
-    'confluent_kafka.avro.CachedSchemaRegistryClient.register',
-    MagicMock(return_value=1)
+    "confluent_kafka.avro.CachedSchemaRegistryClient.register",
+    MagicMock(return_value=1),
 )
 @patch(
-    'confluent_kafka.avro.CachedSchemaRegistryClient.get_latest_schema',
-    MagicMock(return_value=(1, message._schema, 1))
+    "confluent_kafka.avro.CachedSchemaRegistryClient.get_latest_schema",
+    MagicMock(return_value=(1, message._schema, 1)),
 )
 @patch(
-    'confluent_kafka.avro.CachedSchemaRegistryClient.get_by_id',
-    MagicMock(return_value=message._schema)
+    "confluent_kafka.avro.CachedSchemaRegistryClient.get_by_id",
+    MagicMock(return_value=message._schema),
 )
 def test_consume_one_avro_value(consumer):
-    key = bytes(str(uuid.uuid4()), encoding='utf8')
+    key = bytes(str(uuid.uuid4()), encoding="utf8")
     value = message
 
     m = MockMessage()
     m.set_key(key)
     m.set_value(serializer.serialize(value, TEST_TOPIC))
 
-    with patch('kafkian.consumer.Consumer._poll', Mock(return_value=m)):
+    with patch("kafkian.consumer.Consumer._poll", Mock(return_value=m)):
         received = next(consumer)
     assert received.key == key
     assert received.value == value
 
 
 def test_consume_one_tombstone(consumer):
-    key = bytes(str(uuid.uuid4()), encoding='utf8')
+    key = bytes(str(uuid.uuid4()), encoding="utf8")
     value = None
 
     m = MockMessage()
     m.set_key(key)
     m.set_value(value)
 
-    with patch('kafkian.consumer.Consumer._poll', Mock(return_value=m)):
+    with patch("kafkian.consumer.Consumer._poll", Mock(return_value=m)):
         m = next(consumer)
     assert m.key == key
     assert m.value == value

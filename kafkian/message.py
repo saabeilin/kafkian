@@ -20,7 +20,10 @@ class Message:
     """
 
     def __init__(
-        self, message: ConfluentKafkaMessage, key_deserializer: Deserializer, value_deserializer: Deserializer
+        self,
+        message: ConfluentKafkaMessage,
+        key_deserializer: Deserializer,
+        value_deserializer: Deserializer,
     ):
         self._message = message
         self._key_deserializer = key_deserializer
@@ -49,7 +52,9 @@ class Message:
             return self._deserialized_value
         if self._message.value() is None:
             return None
-        self._deserialized_value = self._value_deserializer.deserialize(self._message.value())
+        self._deserialized_value = self._value_deserializer.deserialize(
+            self._message.value()
+        )
         return self._deserialized_value
 
     @property
@@ -87,7 +92,8 @@ class Message:
     @property
     def timestamp_type(self) -> Optional[int]:
         """
-        :return: Message timestamp type - either message creation time or Log Append time, of None if not available.
+        :return: Message timestamp type - either message creation time
+                 or Log Append time, of None if not available.
         """
         if not self._message.timestamp():
             return None
@@ -96,7 +102,8 @@ class Message:
     @property
     def headers(self) -> list:
         """
-        :return: Message headers as list of two-tuples, one (key, value) pair for each header.
+        :return: Message headers as list of two-tuples,
+                 one (key, value) pair for each header.
         :rtype: [(str, bytes),...] or None.
         """
         return self._message.headers() or []

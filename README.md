@@ -1,27 +1,29 @@
-# kafkian 
+# kafkian
 
-[![Build Status](https://travis-ci.org/saabeilin/kafkian.svg?branch=master)](https://travis-ci.org/saabeilin/kafkian)
-[![codecov](https://codecov.io/gh/saabeilin/kafkian/branch/master/graph/badge.svg)](https://codecov.io/gh/saabeilin/kafkian) 
+[![code-checks](https://github.com/saabeilin/kafkian/actions/workflows/check.yaml/badge.svg)](https://github.com/saabeilin/kafkian/actions/workflows/check.yaml)
+[![code-checks](https://github.com/saabeilin/kafkian/actions/workflows/check.yaml/badge.svg)](https://github.com/saabeilin/kafkian/actions/workflows/check.yaml)
 [![PyPI](https://img.shields.io/pypi/v/kafkian.svg)](https://pypi.org/project/kafkian/)
 
-*kafkian* is a opinionated a high-level consumer and producer on top of 
-[confluent-kafka-python](https://github.com/confluentinc/confluent-kafka-python)/librdkafka 
-and partially inspired by [confluent_kafka_helpers](https://github.com/fyndiq/confluent_kafka_helpers). 
+[//]: # ([![codecov]&#40;https://codecov.io/gh/saabeilin/kafkian/branch/master/graph/badge.svg&#41;]&#40;https://codecov.io/gh/saabeilin/kafkian&#41;)
+
+*kafkian* is a opinionated a high-level consumer and producer on top of
+[confluent-kafka-python](https://github.com/confluentinc/confluent-kafka-python)/librdkafka
+and partially inspired by [confluent_kafka_helpers](https://github.com/fyndiq/confluent_kafka_helpers).
 It is intended for use primarily in CQRS/EventSourced systems when usage is mostly
 limited to producing and consuming encoded messages.
 
 *kafkian* partially mimics Kafka JAVA API, partially is more pythonic, partially just like the maintainer likes it.
 
-Instead of configuring all the things via properties, most of the things 
+Instead of configuring all the things via properties, most of the things
 are planned to be configured explicitely and, wneh possible, via dependency
 injection for easier testing. The configuration dictionaries for both producer
-and consumer are passed-through directly to underlying confluent producer and 
+and consumer are passed-through directly to underlying confluent producer and
 consumer, hidden behind a facade.
 
-The library provides a base serializer and deserializer classes, as well as 
-their specialized Avro subclasses, `AvroSerializer` and `AvroDeserializer`. 
-This allows having, say, a plain string key and and avro-encoded message, 
-or vice versa. Quite often an avro-encoded string is used as a key, for 
+The library provides a base serializer and deserializer classes, as well as
+their specialized Avro subclasses, `AvroSerializer` and `AvroDeserializer`.
+This allows having, say, a plain string key and and avro-encoded message,
+or vice versa. Quite often an avro-encoded string is used as a key, for
 this purpose we provide `AvroStringKeySerializer`.
 
 Unlike the Confluent library, we support supplying the specific Avro schema
@@ -65,7 +67,7 @@ value_schema_str = """
      {
        "name" : "uuid",
        "type" : "string"
-     },     
+     },
      {
        "name" : "name",
        "type" : "string"
@@ -133,8 +135,8 @@ for message in consumer:
     consumer.commit()
 ```
 
-Here, `message` is an instance of `Message` class, that wraps the original 
-message exposed by the confluent-kafka-python, and you can access 
+Here, `message` is an instance of `Message` class, that wraps the original
+message exposed by the confluent-kafka-python, and you can access
 the decoded key and value via `.key` and `.value` properties respectively.
 
 Notice that deserialization will happen on first access of the properties,
@@ -154,19 +156,19 @@ This library is, as stated, quite opinionated, however, I'm open to suggestions.
 Write your questions and suggestions as issues here on github!
 
 #### Running tests
-Both unit and system tests are provided. 
+Both unit and system tests are provided.
 
-To run unit-tests, install the requirements and just run 
+To run unit-tests, install the requirements and just run
 ```bash
 py.test tests/unit/
-``` 
+```
 
-To run system tests, a Kafka cluster together with a schema registry is 
-required. A Docker compose file is provided, just run 
+To run system tests, a Kafka cluster together with a schema registry is
+required. A Docker compose file is provided, just run
 ```bash
 docker-compose up
 ```
-and once the cluster is up and running, run system tests via 
+and once the cluster is up and running, run system tests via
 ```bash
 py.test tests/system/
 ```

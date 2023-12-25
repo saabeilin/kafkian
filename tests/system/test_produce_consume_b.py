@@ -4,17 +4,17 @@ import pytest
 
 from kafkian import Consumer, Producer
 
-KAFKA_BOOTSTRAP_SERVERS = 'localhost:29092'
-TEST_TOPIC = 'test.test.' + str(uuid.uuid4())
+KAFKA_BOOTSTRAP_SERVERS = "localhost:29092"
+TEST_TOPIC = "test.test." + str(uuid.uuid4())
 
 CONSUMER_CONFIG = {
-    'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
-    'auto.offset.reset': 'earliest',
-    'group.id': str(uuid.uuid4())
+    "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
+    "auto.offset.reset": "earliest",
+    "group.id": str(uuid.uuid4()),
 }
 
 PRODUCER_CONFIG = {
-    'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
+    "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
 }
 
 
@@ -29,8 +29,8 @@ def consumer():
 
 
 def test_produce_consume_one(producer, consumer):
-    key = bytes(str(uuid.uuid4()), encoding='utf8')
-    value = bytes(str(uuid.uuid4()), encoding='utf8')
+    key = bytes(str(uuid.uuid4()), encoding="utf8")
+    value = bytes(str(uuid.uuid4()), encoding="utf8")
     producer.produce(TEST_TOPIC, key, value, sync=True)
     with consumer:
         m = next(consumer)
@@ -40,7 +40,7 @@ def test_produce_consume_one(producer, consumer):
 
 
 def test_produce_consume_one_tombstone(producer, consumer):
-    key = bytes(str(uuid.uuid4()), encoding='utf8')
+    key = bytes(str(uuid.uuid4()), encoding="utf8")
     value = None
     producer.produce(TEST_TOPIC, key, value, sync=True)
     with consumer:

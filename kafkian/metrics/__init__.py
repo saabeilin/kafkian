@@ -3,6 +3,11 @@ import time
 import typing
 from functools import partial
 
+from kafkian.metrics.consts import (
+    TOPIC_STATS_DEBUG,
+    TOPIC_STATS_LAG,
+    TOPIC_STATS_OFFSETS,
+)
 from kafkian.message import Message
 from kafkian.metrics.consts import TOPIC_STATS_DEBUG, TOPIC_STATS_LAG, TOPIC_STATS_OFFSETS
 
@@ -74,7 +79,9 @@ class KafkaMetrics:
                     gauge(f"{base}.next_offset", partition_stats["next_offset"])
                     gauge(f"{base}.app_offset", partition_stats["app_offset"])
                     gauge(f"{base}.stored_offset", partition_stats["stored_offset"])
-                    gauge(f"{base}.committed_offset", partition_stats["committed_offset"])
+                    gauge(
+                        f"{base}.committed_offset", partition_stats["committed_offset"]
+                    )
                     gauge(f"{base}.lo_offset", partition_stats["lo_offset"])
                     gauge(f"{base}.hi_offset", partition_stats["hi_offset"])
 
