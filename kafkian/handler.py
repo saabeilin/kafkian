@@ -8,7 +8,9 @@ class Handler:
     def __init__(self, consumer: Consumer, synchronous_commits: bool = True):
         self._consumer = consumer
         self._synchronous_commits = synchronous_commits
-        self._handlers_map: typing.Dict[typing.Tuple[str, typing.Optional[str]], typing.Callable] = {}
+        self._handlers_map: typing.Dict[
+            typing.Tuple[str, typing.Optional[str]], typing.Callable
+        ] = {}
 
     def _before(self, message: Message) -> None:
         self._consumer.metrics.send_consumer_message_metrics(message)
@@ -36,7 +38,9 @@ class Handler:
 
         # Non-Avro value?
         if not hasattr(message.value, "schema"):
-            return self._handlers_map.get((message.topic, "*"), None) or self._handlers_map.get(("*", "*"), None)
+            return self._handlers_map.get(
+                (message.topic, "*"), None
+            ) or self._handlers_map.get(("*", "*"), None)
 
         # Finally, Avro-encoded value
         return (
@@ -52,9 +56,9 @@ class Handler:
     def handles(self, topic: str, avro_schema: str = "*", **kwargs):
         """A decorator to mark a callable as handler for (topic, avro_schema)
 
-            @handler.handles(topic='orders.orders', avro_schema='orders.OrderCreated')
-            def on_order_created():
-                ...
+        @handler.handles(topic='orders.orders', avro_schema='orders.OrderCreated')
+        def on_order_created():
+            ...
         """
 
         def decorator(f):
@@ -63,5 +67,11 @@ class Handler:
 
         return decorator
 
-    def _add_handler(self, handler: typing.Callable, topic: str, avro_schema: typing.Optional[str], **kwargs) -> None:
+    def _add_handler(
+        self,
+        handler: typing.Callable,
+        topic: str,
+        avro_schema: typing.Optional[str],
+        **kwargs,
+    ) -> None:
         self._handlers_map[(topic, avro_schema)] = handler

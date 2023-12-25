@@ -3,13 +3,12 @@ import time
 import typing
 from functools import partial
 
+from kafkian.message import Message
 from kafkian.metrics.consts import (
     TOPIC_STATS_DEBUG,
     TOPIC_STATS_LAG,
     TOPIC_STATS_OFFSETS,
 )
-from kafkian.message import Message
-from kafkian.metrics.consts import TOPIC_STATS_DEBUG, TOPIC_STATS_LAG, TOPIC_STATS_OFFSETS
 
 
 class KafkaMetrics:
