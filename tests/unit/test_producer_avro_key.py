@@ -53,5 +53,5 @@ def test_avro_producer_produce(avro_producer):
     avro_producer.produce(topic, key=key, value=value)
 
     producer_produce_mock.assert_called_once_with(
-        topic, b"\x00\x00\x00\x00\x01\x02a", value
+        topic, b"\x00\x00\x00\x00\x01\x02a", value, {}
     )

@@ -41,7 +41,7 @@ def test_produce_consume_one(producer, consumer):
     value = bytes(str(uuid.uuid4()), encoding="utf8")
     producer.produce(TEST_TOPIC, key, value, sync=True)
 
-    producer_produce_mock.assert_called_once_with(TEST_TOPIC, key, value)
+    producer_produce_mock.assert_called_once_with(TEST_TOPIC, key, value, {})
     producer_flush_mock.assert_called_once_with()
 
     # # producer.poll()
@@ -60,5 +60,5 @@ def test_produce_consume_one_tombstone(producer, consumer):
     value = None
     producer.produce(TEST_TOPIC, key, value, sync=True)
 
-    producer_produce_mock.assert_called_once_with(TEST_TOPIC, key, value)
+    producer_produce_mock.assert_called_once_with(TEST_TOPIC, key, value, {})
     producer_flush_mock.assert_called_once_with()

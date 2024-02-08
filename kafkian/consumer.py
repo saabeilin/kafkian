@@ -3,7 +3,7 @@ import logging
 import socket
 import typing
 
-from confluent_kafka.cimpl import Consumer as ConfluentConsumer
+from confluent_kafka.cimpl import Consumer as ConfluentConsumer, TopicPartition
 from confluent_kafka.cimpl import KafkaError
 
 from kafkian.exceptions import KafkianException
@@ -42,10 +42,10 @@ class Consumer:
 
     def __init__(
         self,
-        config: typing.Dict,
-        topics: typing.Iterable,
-        value_deserializer=Deserializer(),
-        key_deserializer=Deserializer(),
+        config: typing.Dict[str, typing.Any],
+        topics: typing.Iterable[str],
+        value_deserializer: Deserializer = Deserializer(),
+        key_deserializer: Deserializer = Deserializer(),
         error_callback: typing.Optional[typing.Callable] = None,
         commit_success_callback: typing.Optional[typing.Callable] = None,
         commit_error_callback: typing.Optional[typing.Callable] = None,
@@ -76,7 +76,7 @@ class Consumer:
         self._generator = self._message_generator()
 
     @staticmethod
-    def _init_consumer_impl(config):
+    def _init_consumer_impl(config: typing.Dict[str, typing.Any]) -> ConfluentConsumer:
         return ConfluentConsumer(
             config,  # logger=logging.getLogger("librdkafka.consumer")
         )
@@ -136,7 +136,9 @@ class Consumer:
                 raise KafkianException(message.error())
             yield Message(message, self.key_deserializer, self.value_deserializer)
 
-    def commit(self, sync=False):
+    def commit(
+        self, sync: bool = False
+    ) -> typing.Optional[typing.List[TopicPartition]]:
         """
         Commits current consumer offsets.
 
