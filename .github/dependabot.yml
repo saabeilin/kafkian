@@ -3,7 +3,25 @@ updates:
   - package-ecosystem: "pip"
     directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "monthly"
+    reviewers:
+      - "saabeilin"
+    assignees:
+      - "saabeilin"
+
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    reviewers:
+      - "saabeilin"
+    assignees:
+      - "saabeilin"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
     reviewers:
       - "saabeilin"
     assignees:
