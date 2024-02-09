@@ -1,4 +1,4 @@
-from typing import Optional
+import typing
 
 from confluent_kafka.cimpl import TIMESTAMP_NOT_AVAILABLE
 from confluent_kafka.cimpl import Message as ConfluentKafkaMessage
@@ -32,7 +32,7 @@ class Message:
         self._deserialized_value = None
 
     @property
-    def key(self):
+    def key(self) -> typing.Optional[typing.Any]:
         """
         :return: Deserialized message key
         """
@@ -44,7 +44,7 @@ class Message:
         return self._deserialized_key
 
     @property
-    def value(self):
+    def value(self) -> typing.Optional[typing.Any]:
         """
         :return: Deserialized message value
         """
@@ -79,7 +79,7 @@ class Message:
         return self._message.offset()
 
     @property
-    def timestamp(self) -> Optional[int]:
+    def timestamp(self) -> typing.Optional[int]:
         """
         :return: Message timestamp, of None if not available.
         """
@@ -90,7 +90,7 @@ class Message:
         return self._message.timestamp()[1]
 
     @property
-    def timestamp_type(self) -> Optional[int]:
+    def timestamp_type(self) -> typing.Optional[int]:
         """
         :return: Message timestamp type - either message creation time
                  or Log Append time, of None if not available.
@@ -107,3 +107,7 @@ class Message:
         :rtype: [(str, bytes),...] or None.
         """
         return self._message.headers() or []
+
+    @property
+    def message(self) -> ConfluentKafkaMessage:
+        return self._message
