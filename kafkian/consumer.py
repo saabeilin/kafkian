@@ -137,14 +137,15 @@ class Consumer:
             yield Message(message, self.key_deserializer, self.value_deserializer)
 
     def commit(
-        self, sync: bool = False
+        self, message: typing.Optional[Message] = None, sync: bool = True
     ) -> typing.Optional[typing.List[TopicPartition]]:
         """
         Commits current consumer offsets.
 
-        :param sync: do a synchronous commit (false by default)
+        :param message: message to commit offset for. If None, commits all offsets: use with caution
+        :param sync: do a synchronous commit (true by default)
         """
-        return self._consumer_impl.commit(asynchronous=not sync)
+        return self._consumer_impl.commit(message.message, asynchronous=not sync)
 
     def _on_commit(self, err, topics_partitions) -> None:
         if err:
