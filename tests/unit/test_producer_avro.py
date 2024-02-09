@@ -77,7 +77,7 @@ def test_avro_producer_produce(avro_producer):
     avro_producer.produce(key=key, value=value, topic=topic)
 
     producer_produce_mock.assert_called_once_with(
-        topic, key, avro_producer.value_serializer.serialize(value, topic)
+        topic, key, avro_producer.value_serializer.serialize(value, topic), {}
     )
 
 

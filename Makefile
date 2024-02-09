@@ -11,7 +11,7 @@ kafka:
 	docker-compose up -d
 
 systemtest: kafka
-	pytest -v --ff tests/system
+	PYTHONPATH=. pytest -v --ff tests/system
 
 black:
 	black kafkian/ tests/

@@ -63,15 +63,15 @@ class Producer:
         self._producer_impl = self._init_producer_impl(config)
 
     @staticmethod
-    def _init_producer_impl(config):
+    def _init_producer_impl(config: typing.Dict[str, typing.Any]) -> ConfluentProducer:
         return ConfluentProducer(
             config, logger=logging.getLogger("librdkafka.producer")
         )
 
-    def _close(self):
+    def _close(self) -> None:
         self.flush()
 
-    def flush(self, timeout=None):
+    def flush(self, timeout: typing.Optional[float] = None) -> None:
         """
         Waits for all messages in the producer queue to be delivered
         and calls registered callbacks
@@ -83,7 +83,7 @@ class Producer:
         timeout = timeout or 1
         self._producer_impl.flush(timeout)
 
-    def poll(self, timeout=None):
+    def poll(self, timeout: typing.Optional[float] = None) -> int:
         """
         Polls the underlying producer for events and calls registered callbacks
 
@@ -93,7 +93,14 @@ class Producer:
         timeout = timeout or 1
         return self._producer_impl.poll(timeout)
 
-    def produce(self, topic, key, value, sync=False):
+    def produce(
+        self,
+        topic: str,
+        key,
+        value,
+        headers: typing.Optional[typing.Dict[str, str]] = None,
+        sync: bool = False,
+    ) -> None:
         """
         Produces (`key`, `value`) to the specified `topic`.
         If `sync` is True, waits until the message is delivered/acked.
@@ -104,20 +111,30 @@ class Producer:
         :param key:
         :param value:
         :param sync:
+        :param headers:
         :return:
         """
         key = self.key_serializer.serialize(key, topic, is_key=True)
         # If value is None, it's a "tombstone" and shall be passed through
         if value is not None:
             value = self.value_serializer.serialize(value, topic)
-        self._produce(topic, key, value)
+        headers = headers or dict()
+        self._produce(topic, key, value, headers)
         if sync:
             self.flush()
 
-    def _produce(self, topic, key, value, **kwargs):
-        self._producer_impl.produce(topic=topic, value=value, key=key, **kwargs)
+    def _produce(
+        self, topic: str, key, value, headers: typing.Dict[str, str], **kwargs
+    ) -> None:
+        self._producer_impl.produce(
+            topic=topic,
+            value=value,
+            key=key,
+            headers=headers,
+            **kwargs,
+        )
 
-    def _on_delivery(self, err, msg):
+    def _on_delivery(self, err, msg) -> None:
         if err:
             logger.warning(
                 "Producer send failed",
@@ -138,14 +155,14 @@ class Producer:
             if self.delivery_success_callback:
                 self.delivery_success_callback(msg)
 
-    def _on_error(self, error: KafkaError):
+    def _on_error(self, error: KafkaError) -> None:
         logger.error(
             error.str(), extra=dict(error_code=error.code(), error_name=error.name())
         )
         if self.error_callback:
             self.error_callback(error)
 
-    def _on_throttle(self, event):
+    def _on_throttle(self, event) -> None:
         logger.warning("Throttle", extra=dict(throttle_event=event))
 
     def _on_stats(self, stats):
