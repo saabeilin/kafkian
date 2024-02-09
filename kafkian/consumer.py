@@ -3,8 +3,8 @@ import logging
 import socket
 import typing
 
-from confluent_kafka.cimpl import Consumer as ConfluentConsumer, TopicPartition
-from confluent_kafka.cimpl import KafkaError
+from confluent_kafka.cimpl import Consumer as ConfluentConsumer
+from confluent_kafka.cimpl import KafkaError, TopicPartition
 
 from kafkian.exceptions import KafkianException
 from kafkian.message import Message
