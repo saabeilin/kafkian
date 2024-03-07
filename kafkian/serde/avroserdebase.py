@@ -1,5 +1,6 @@
 import struct
 
+import avro
 from confluent_kafka.avro import MessageSerializer as ConfluentMessageSerializer
 from confluent_kafka.avro.serializer import SerializerError
 from confluent_kafka.avro.serializer.message_serializer import ContextStringIO
@@ -13,7 +14,7 @@ class HasSchemaMixin:
     """
 
     @property
-    def schema(self):
+    def schema(self) -> avro.schema.Schema:
         """
         :return: Avro schema for used to decode this entity
         :rtype: avro.schema.Schema
@@ -25,7 +26,7 @@ class AvroRecord(dict, HasSchemaMixin):
     pass
 
 
-def _wrap(value, schema):
+def _wrap(value, schema: avro.schema.Schema):
     """
     Wraps a value into subclass with HasSchemaMixin
     :param value: a decoded value
