@@ -15,7 +15,7 @@ insert_final_newline = true
 [Makefile]
 indent_style = tab
 
-[*.{js,css,html,json,xml,yml}]
+[*.{js,css,html,json,xml,yml,yaml}]
 indent_size = 2
 
 [*.py]
