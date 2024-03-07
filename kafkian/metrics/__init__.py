@@ -1,7 +1,9 @@
 import json
+import time
 import typing
 from functools import partial
 
+from kafkian.message import Message
 from kafkian.metrics.consts import (
     TOPIC_STATS_DEBUG,
     TOPIC_STATS_LAG,
@@ -32,6 +34,13 @@ class KafkaMetrics:
         self._send_topic_partition_stats(stats)
         self._send_cgrp_stats(stats)
         self._send_eos_stats(stats)
+
+    def send_consumer_message_metrics(self, message: Message):
+        if message.timestamp:
+            lag_millis = int(time.time() * 1000) - message.timestamp
+            tags = [f"topic:{message.topic}", f"partition:{message.partition}"]
+            gauge = partial(self.statsd.gauge, tags=tags)
+            gauge(f"{self.base}.consumer.consumer_lag_millis", lag_millis)
 
     def _send_stats(self, stats: typing.Dict):
         base = f"{self.base}.librdkafka"
