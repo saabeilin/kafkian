@@ -1,5 +1,5 @@
 codecov
-pytest~=7.4.2
+pytest~=8.2.1
 pytest-mock
 pytest-sugar
 coverage~=7.3.4
