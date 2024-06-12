@@ -1,3 +1,4 @@
+import time
 import uuid
 
 import pytest
@@ -66,9 +67,10 @@ def test_produce_consume_one(producer, consumer):
     value = Message({"name": "some name"})
 
     producer.produce(TEST_TOPIC, key, value, sync=True)
+    time.sleep(1)
     with consumer:
         m = next(consumer)
-        consumer.commit(sync=True)
+        consumer.commit(m, sync=True)
     assert m.key == key
     assert m.value == value
 
