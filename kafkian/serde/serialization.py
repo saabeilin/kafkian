@@ -47,7 +47,7 @@ class AvroSerializerBase(Serializer):
         elif self.subject_name_strategy == SubjectNameStrategy.RecordNameStrategy:
             subject = schema.fullname
         elif self.subject_name_strategy == SubjectNameStrategy.TopicRecordNameStrategy:
-            subject = "{}-{}".format(topic, schema.fullname)
+            subject = f"{topic}-{schema.fullname}"
         else:
             raise ValueError("Unknown SubjectNameStrategy")
         return subject

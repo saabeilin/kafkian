@@ -42,14 +42,14 @@ class Consumer:
 
     def __init__(
         self,
-        config: typing.Dict[str, typing.Any],
+        config: dict[str, typing.Any],
         topics: typing.Iterable[str],
         value_deserializer: Deserializer = Deserializer(),
         key_deserializer: Deserializer = Deserializer(),
-        error_callback: typing.Optional[typing.Callable] = None,
-        commit_success_callback: typing.Optional[typing.Callable] = None,
-        commit_error_callback: typing.Optional[typing.Callable] = None,
-        metrics: typing.Optional[KafkaMetrics] = None,
+        error_callback: typing.Callable | None = None,
+        commit_success_callback: typing.Callable | None = None,
+        commit_error_callback: typing.Callable | None = None,
+        metrics: KafkaMetrics | None = None,
     ) -> None:
         self._subscribed = False
         self.topics = list(topics)
@@ -76,7 +76,7 @@ class Consumer:
         self._generator = self._message_generator()
 
     @staticmethod
-    def _init_consumer_impl(config: typing.Dict[str, typing.Any]) -> ConfluentConsumer:
+    def _init_consumer_impl(config: dict[str, typing.Any]) -> ConfluentConsumer:
         return ConfluentConsumer(
             config,  # logger=logging.getLogger("librdkafka.consumer")
         )
@@ -137,8 +137,8 @@ class Consumer:
             yield Message(message, self.key_deserializer, self.value_deserializer)
 
     def commit(
-        self, message: typing.Optional[Message] = None, sync: bool = True
-    ) -> typing.Optional[typing.List[TopicPartition]]:
+        self, message: Message | None = None, sync: bool = True
+    ) -> list[TopicPartition] | None:
         """
         Commits current consumer offsets.
 

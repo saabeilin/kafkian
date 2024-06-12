@@ -36,7 +36,7 @@ def _wrap(value, schema: avro.schema.Schema):
     if hasattr(schema, "fullname"):
         name = schema.fullname
     elif hasattr(schema, "namespace"):
-        name = "{namespace}.{name}".format(namespace=schema.namespace, name=schema.name)
+        name = f"{schema.namespace}.{schema.name}"
     elif hasattr(schema, "name"):
         name = schema.name
     else:

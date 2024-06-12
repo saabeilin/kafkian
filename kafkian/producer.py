@@ -35,12 +35,12 @@ class Producer:
 
     def __init__(
         self,
-        config: typing.Dict,
+        config: dict,
         value_serializer=Serializer(),
         key_serializer=Serializer(),
-        error_callback: typing.Optional[typing.Callable] = None,
-        delivery_success_callback: typing.Optional[typing.Callable] = None,
-        delivery_error_callback: typing.Optional[typing.Callable] = None,
+        error_callback: typing.Callable | None = None,
+        delivery_success_callback: typing.Callable | None = None,
+        delivery_error_callback: typing.Callable | None = None,
         metrics=None,
     ) -> None:
         self.value_serializer = value_serializer
@@ -63,7 +63,7 @@ class Producer:
         self._producer_impl = self._init_producer_impl(config)
 
     @staticmethod
-    def _init_producer_impl(config: typing.Dict[str, typing.Any]) -> ConfluentProducer:
+    def _init_producer_impl(config: dict[str, typing.Any]) -> ConfluentProducer:
         return ConfluentProducer(
             config, logger=logging.getLogger("librdkafka.producer")
         )
@@ -71,7 +71,7 @@ class Producer:
     def _close(self) -> None:
         self.flush()
 
-    def flush(self, timeout: typing.Optional[float] = None) -> None:
+    def flush(self, timeout: float | None = None) -> None:
         """
         Waits for all messages in the producer queue to be delivered
         and calls registered callbacks
@@ -83,7 +83,7 @@ class Producer:
         timeout = timeout or 1
         self._producer_impl.flush(timeout)
 
-    def poll(self, timeout: typing.Optional[float] = None) -> int:
+    def poll(self, timeout: float | None = None) -> int:
         """
         Polls the underlying producer for events and calls registered callbacks
 
@@ -98,7 +98,7 @@ class Producer:
         topic: str,
         key,
         value,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         sync: bool = False,
     ) -> None:
         """
@@ -124,7 +124,7 @@ class Producer:
             self.flush()
 
     def _produce(
-        self, topic: str, key, value, headers: typing.Dict[str, str], **kwargs
+        self, topic: str, key, value, headers: dict[str, str], **kwargs
     ) -> None:
         self._producer_impl.produce(
             topic=topic,

@@ -25,7 +25,7 @@ class KafkaMetrics:
         self.topic_stats_level = TOPIC_STATS_LAG
 
     def send(self, stats_raw: str):
-        stats: typing.Dict = json.loads(stats_raw)
+        stats: dict = json.loads(stats_raw)
 
         self._send_stats(stats)
         self._send_broker_stats(stats)
@@ -33,7 +33,7 @@ class KafkaMetrics:
         self._send_cgrp_stats(stats)
         self._send_eos_stats(stats)
 
-    def _send_stats(self, stats: typing.Dict):
+    def _send_stats(self, stats: dict):
         base = f"{self.base}.librdkafka"
         gauge = partial(self.statsd.gauge, tags=self.base_tags)
         gauge(f"{base}.replyq", stats["replyq"])
@@ -42,10 +42,10 @@ class KafkaMetrics:
         gauge(f"{base}.msg_max", stats["msg_max"])
         gauge(f"{base}.msg_size_max", stats["msg_size_max"])
 
-    def _send_broker_stats(self, stats: typing.Dict):
+    def _send_broker_stats(self, stats: dict):
         pass
 
-    def _send_topic_partition_stats(self, stats: typing.Dict):
+    def _send_topic_partition_stats(self, stats: dict):
         if stats["type"] != "consumer":
             return
 
@@ -87,7 +87,7 @@ class KafkaMetrics:
                     gauge(f"{base}.msgs", partition_stats["msgs"])
                     gauge(f"{base}.rx_ver_drops", partition_stats["rx_ver_drops"])
 
-    def _send_cgrp_stats(self, stats: typing.Dict):
+    def _send_cgrp_stats(self, stats: dict):
         if stats["type"] != "consumer" or "cgrp" not in stats:
             return
         cgrp = stats["cgrp"]
@@ -97,6 +97,6 @@ class KafkaMetrics:
         gauge(f"{base}.rebalance_cnt", cgrp["rebalance_cnt"])
         gauge(f"{base}.assignment_size", cgrp["assignment_size"])
 
-    def _send_eos_stats(self, stats: typing.Dict):
+    def _send_eos_stats(self, stats: dict):
         if stats["type"] != "producer" or "eos" not in stats:
             return

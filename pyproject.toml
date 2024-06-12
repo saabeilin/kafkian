@@ -24,3 +24,46 @@ disallow_untyped_defs = true
 check_untyped_defs = true
 disallow_incomplete_defs = true
 python_version = "3.11"
+
+[tool.ruff]
+src = ["."]
+
+line-length = 88
+lint.select = [
+    "C901",
+    "C",
+    "Q",
+    "A",
+    "N",
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+    # annotations
+    #        "ANN",
+]
+lint.ignore = [
+    "ANN101", # missing-type-self
+]
+lint.fixable = ["ALL"]
+lint.unfixable = []
+exclude = [
+    ".git",
+    ".idea",
+    ".mypy_cache",
+    ".tox",
+    ".venv"
+]
+target-version = "py310"
+
+[tool.ruff.lint.mccabe]
+# Flake8 is 15 - which I feel is too high
+max-complexity = 8
