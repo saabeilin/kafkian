@@ -3,14 +3,19 @@ from enum import Enum
 
 from confluent_kafka import avro
 from confluent_kafka.avro import CachedSchemaRegistryClient
+from confluent_kafka.schema_registry import (
+    topic_subject_name_strategy,
+    record_subject_name_strategy,
+    topic_record_subject_name_strategy,
+)
 
 from .avroserdebase import AvroRecord, AvroSerDeBase
 
 
 class SubjectNameStrategy(Enum):
-    TopicNameStrategy = 0
-    RecordNameStrategy = 1
-    TopicRecordNameStrategy = 2
+    TopicNameStrategy = topic_subject_name_strategy
+    RecordNameStrategy = record_subject_name_strategy
+    TopicRecordNameStrategy = topic_record_subject_name_strategy
 
 
 class Serializer:
