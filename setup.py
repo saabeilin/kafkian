@@ -26,8 +26,8 @@ setup(
     license="Apache 2.0",
     packages=find_packages(),
     install_requires=[
-        "confluent-kafka>=1.0.0",
-        "fastavro>=0.18.0",
+        "confluent-kafka>=2.3.0",
+        "fastavro>=1.9.0",
         "avro-python3>=1.8.2",
     ],
     zip_safe=False,
