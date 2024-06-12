@@ -8,7 +8,7 @@ unittest:
 	PYTHONPATH=. pytest -v --ff -x tests/unit/
 
 kafka:
-	docker-compose up -d
+	docker compose up -d
 
 systemtest: kafka
 	PYTHONPATH=. pytest -v --ff tests/system
