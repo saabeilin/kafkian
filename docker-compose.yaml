@@ -1,7 +1,7 @@
 version: '3.5'
 services:
   test-zookeeper-1:
-    image: confluentinc/cp-zookeeper:5.3.1
+    image: confluentinc/cp-zookeeper:5.5.12
     hostname: test-zookeeper-1
     container_name: test-zookeeper-1
     ports:
@@ -22,9 +22,16 @@ services:
       - test-zookeeper-1-data:/var/lib/zookeeper/data/
       - test-zookeeper-1-log:/var/lib/zookeeper/log/
     restart: "always"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          memory: 128M
 
   test-kafka-1:
-    image: confluentinc/cp-kafka:5.3.1
+    image: confluentinc/cp-kafka:5.5.12
     hostname: test-kafka-1
     container_name: test-kafka-1
     stop_grace_period: 5m
@@ -49,9 +56,16 @@ services:
     volumes:
       - test-kafka-1-data:/var/lib/kafka/data/
     restart: "always"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 1G
+        reservations:
+          memory: 512M
 
   test-schema-registry:
-    image: confluentinc/cp-schema-registry:5.3.1
+    image: confluentinc/cp-schema-registry:5.5.12
     hostname: test-schema-registry
     container_name: test-schema-registry
     depends_on:
@@ -63,8 +77,15 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: "test-schema-registry"
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'test-zookeeper-1:2181'
     restart: "always"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          memory: 512M
 
 volumes:
-    test-zookeeper-1-data:
-    test-zookeeper-1-log:
-    test-kafka-1-data:
+  test-zookeeper-1-data:
+  test-zookeeper-1-log:
+  test-kafka-1-data:
