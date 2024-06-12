@@ -145,6 +145,9 @@ class Consumer:
         :param message: message to commit offset for. If None, commits all offsets: use with caution
         :param sync: do a synchronous commit (true by default)
         """
+        if not message:
+            return self._consumer_impl.commit(asynchronous=not sync)
+
         return self._consumer_impl.commit(message.message, asynchronous=not sync)
 
     def _on_commit(self, err, topics_partitions) -> None:
