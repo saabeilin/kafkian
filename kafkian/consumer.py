@@ -13,10 +13,11 @@ from kafkian.serde.deserialization import Deserializer
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_DESERIALIZER = Deserializer()
+
 
 class Consumer:
-    """
-    Kafka consumer with configurable key/value deserializers.
+    """Kafka consumer with configurable key/value deserializers.
 
     Can be used both as a context manager or generator.
 
@@ -44,8 +45,8 @@ class Consumer:
         self,
         config: dict[str, typing.Any],
         topics: typing.Iterable[str],
-        value_deserializer: Deserializer = Deserializer(),
-        key_deserializer: Deserializer = Deserializer(),
+        value_deserializer: Deserializer = DEFAULT_DESERIALIZER,
+        key_deserializer: Deserializer = DEFAULT_DESERIALIZER,
         error_callback: typing.Callable | None = None,
         commit_success_callback: typing.Callable | None = None,
         commit_error_callback: typing.Callable | None = None,
@@ -70,7 +71,7 @@ class Consumer:
         config["throttle_cb"] = self._on_throttle
         config["stats_cb"] = self._on_stats
 
-        logger.info("Initializing consumer", extra=dict(config=config))
+        logger.info("Initializing consumer", extra={"config": config})
         atexit.register(self._close)
         self._consumer_impl = self._init_consumer_impl(config)
         self._generator = self._message_generator()
@@ -107,14 +108,13 @@ class Consumer:
         self._close()
 
     def _close(self) -> None:
-        """
-        Close down the consumer cleanly accordingly:
-         - stops consuming
-         - commit offsets (only on auto commit)
-         - leave consumer group
+        """Close down the consumer cleanly accordingly:
+        - stops consuming
+        - commit offsets (only on auto commit)
+        - leave consumer group
         """
         logger.info("Closing consumer")
-        try:
+        try:  # noqa: SIM105
             self._consumer_impl.close()
         except RuntimeError:
             # Consumer is probably already closed
@@ -139,8 +139,7 @@ class Consumer:
     def commit(
         self, message: Message | None = None, sync: bool = True
     ) -> list[TopicPartition] | None:
-        """
-        Commits current consumer offsets.
+        """Commits current consumer offsets.
 
         :param message: message to commit offset for. If None, commits all offsets: use with caution
         :param sync: do a synchronous commit (true by default)
@@ -152,26 +151,26 @@ class Consumer:
 
     def _on_commit(self, err, topics_partitions) -> None:
         if err:
-            logger.warning("Offset commit failed", extra=dict(error_message=str(err)))
+            logger.warning("Offset commit failed", extra={"error_message": str(err)})
             if self.commit_error_callback:
                 self.commit_error_callback(topics_partitions, err)
         else:
             logger.debug(
                 "Offset commit succeeded",
-                extra=dict(topics_partitions=topics_partitions),
+                extra={"topics_partitions": topics_partitions},
             )
             if self.commit_success_callback:
                 self.commit_success_callback(topics_partitions)
 
     def _on_error(self, error: KafkaError) -> None:
         logger.error(
-            error.str(), extra=dict(error_code=error.code(), error_name=error.name())
+            error.str(), extra={"error_code": error.code(), "error_name": error.name()}
         )
         if self.error_callback:
             self.error_callback(error)
 
     def _on_throttle(self, event) -> None:
-        logger.warning("Throttle", extra=dict(throttle_event=event))
+        logger.warning("Throttle", extra={"throttle_event": event})
 
     def _on_stats(self, stats: str) -> None:
         if self.metrics:

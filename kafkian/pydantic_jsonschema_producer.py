@@ -3,7 +3,7 @@ import typing
 
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.json_schema import JSONSerializer
-from confluent_kafka.serialization import SerializationContext, MessageField
+from confluent_kafka.serialization import MessageField, SerializationContext
 from pydantic import BaseModel
 
 from kafkian import Producer
@@ -11,9 +11,7 @@ from kafkian.serde.serialization import Serializer
 
 
 class PydanticJsonSchemaSerializer(Serializer):
-
     def serialize(self, value: BaseModel, topic: str, **kwargs) -> bytes:
-
         serializer = JSONSerializer(
             json.dumps(value.model_json_schema(mode="serialization")),
             SchemaRegistryClient({"url": "http://localhost:28081"}),
@@ -30,10 +28,10 @@ class PydanticJsonSchemaSerializer(Serializer):
 class PydanticJsonSchemaProducer(Producer):
     def __init__(
         self,
-        config: typing.Dict,
-        error_callback: typing.Optional[typing.Callable] = None,
-        delivery_success_callback: typing.Optional[typing.Callable] = None,
-        delivery_error_callback: typing.Optional[typing.Callable] = None,
+        config: dict,
+        error_callback: typing.Callable | None = None,
+        delivery_success_callback: typing.Callable | None = None,
+        delivery_error_callback: typing.Callable | None = None,
         metrics=None,
     ) -> None:
         super().__init__(

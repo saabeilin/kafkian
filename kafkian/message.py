@@ -7,8 +7,7 @@ from kafkian.serde.deserialization import Deserializer
 
 
 class Message:
-    """
-    Message is an object (log record) consumed from Kafka.
+    """Message is an object (log record) consumed from Kafka.
 
     It provides read-only access to key, value, and message metadata:
     topic, partition, offset, and optionally timestamp and headers.
@@ -33,9 +32,7 @@ class Message:
 
     @property
     def key(self) -> typing.Any | None:
-        """
-        :return: Deserialized message key
-        """
+        """:return: Deserialized message key"""
         if self._deserialized_key:
             return self._deserialized_key
         if self._message.key() is None:
@@ -45,9 +42,7 @@ class Message:
 
     @property
     def value(self) -> typing.Any | None:
-        """
-        :return: Deserialized message value
-        """
+        """:return: Deserialized message value"""
         if self._deserialized_value:
             return self._deserialized_value
         if self._message.value() is None:
@@ -59,30 +54,22 @@ class Message:
 
     @property
     def topic(self) -> str:
-        """
-        :return: Message topic
-        """
+        """:return: Message topic"""
         return self._message.topic()
 
     @property
     def partition(self) -> int:
-        """
-        :return: Message partition
-        """
+        """:return: Message partition"""
         return self._message.partition()
 
     @property
     def offset(self) -> int:
-        """
-        :return: Message offset
-        """
+        """:return: Message offset"""
         return self._message.offset()
 
     @property
     def timestamp(self) -> int | None:
-        """
-        :return: Message timestamp, of None if not available.
-        """
+        """:return: Message timestamp, of None if not available."""
         if not self._message.timestamp():
             return None
         if self._message.timestamp()[0] == TIMESTAMP_NOT_AVAILABLE:
@@ -91,9 +78,8 @@ class Message:
 
     @property
     def timestamp_type(self) -> int | None:
-        """
-        :return: Message timestamp type - either message creation time
-                 or Log Append time, of None if not available.
+        """:return: Message timestamp type - either message creation time
+        or Log Append time, of None if not available.
         """
         if not self._message.timestamp():
             return None
@@ -101,8 +87,7 @@ class Message:
 
     @property
     def headers(self) -> list:
-        """
-        :return: Message headers as list of two-tuples,
+        """:return: Message headers as list of two-tuples,
                  one (key, value) pair for each header.
         :rtype: [(str, bytes),...] or None.
         """

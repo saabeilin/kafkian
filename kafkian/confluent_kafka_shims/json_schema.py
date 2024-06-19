@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 #
 # Copyright 2020 Confluent Inc.
 #
@@ -15,31 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from io import BytesIO
 
 import json
 import struct
 
+from confluent_kafka.schema_registry import (
+    _MAGIC_BYTE,
+    Schema,
+)
 from confluent_kafka.schema_registry.json_schema import (
     _ContextStringIO,
     _resolve_named_schema,
 )
-from jsonschema import validate, ValidationError, RefResolver
-
-from confluent_kafka.schema_registry import (
-    _MAGIC_BYTE,
-    Schema,
-    topic_subject_name_strategy,
-)
-from confluent_kafka.serialization import SerializationError, Deserializer, Serializer
+from confluent_kafka.serialization import Deserializer, SerializationError
+from jsonschema import RefResolver, ValidationError, validate
 
 
 class JSONDeserializer(Deserializer):
-    """
-    Deserializer for JSON encoded data with Confluent Schema Registry
+    """Deserializer for JSON encoded data with Confluent Schema Registry
     framing.
 
     Args:
+    ----
         schema_str (str, Schema):
             `JSON schema definition <https://json-schema.org/understanding-json-schema/reference/generic.html>`_
             Accepts schema as either a string or a :py:class:`Schema` instance.
@@ -50,6 +46,7 @@ class JSONDeserializer(Deserializer):
             Converts a dict to a Python object instance.
 
         schema_registry_client (SchemaRegistryClient, optional): Schema Registry client instance. Needed if ``schema_str`` is a schema referencing other schemas.
+
     """  # noqa: E501
 
     __slots__ = [
@@ -70,7 +67,9 @@ class JSONDeserializer(Deserializer):
                 self._are_references_provided = bool(schema_str.references)
                 if self._are_references_provided and schema_registry_client is None:
                     raise ValueError(
-                        """schema_registry_client must be provided if "schema_str" is a Schema instance with references"""
+                        """schema_registry_client must be provided if "schema_str"""
+                        ""
+                        """is a Schema instance with references"""
                     )
             else:
                 raise TypeError("You must pass either str or Schema")
@@ -92,41 +91,43 @@ class JSONDeserializer(Deserializer):
         self._from_dict = from_dict
 
     def __call__(self, data, ctx):
-        """
-        Deserialize a JSON encoded record with Confluent Schema Registry framing to
+        """Deserialize a JSON encoded record with Confluent Schema Registry framing to
         a dict, or object instance according to from_dict if from_dict is specified.
 
         Args:
+        ----
             data (bytes): A JSON serialized record with Confluent Schema Regsitry framing.
 
             ctx (SerializationContext): Metadata relevant to the serialization operation.
 
         Returns:
+        -------
             A dict, or object instance according to from_dict if from_dict is specified.
 
         Raises:
+        ------
             SerializerError: If there was an error reading the Confluent framing data, or
                if ``data`` was not successfully validated with the configured schema.
-        """
 
+        """
         if data is None:
             return None
 
         if len(data) <= 5:
             raise SerializationError(
                 "Expecting data framing of length 6 bytes or "
-                "more but total data size is {} bytes. This "
+                f"more but total data size is {len(data)} bytes. This "
                 "message was not produced with a Confluent "
-                "Schema Registry serializer".format(len(data))
+                "Schema Registry serializer"
             )
 
         with _ContextStringIO(data) as payload:
             magic, schema_id = struct.unpack(">bI", payload.read(5))
             if magic != _MAGIC_BYTE:
                 raise SerializationError(
-                    "Unexpected magic byte {}. This message "
+                    f"Unexpected magic byte {magic}. This message "
                     "was not produced with a Confluent "
-                    "Schema Registry serializer".format(magic)
+                    "Schema Registry serializer"
                 )
 
             # JSON documents are self-describing; no need to query schema
@@ -137,9 +138,7 @@ class JSONDeserializer(Deserializer):
                     self._schema = self._registry.get_schema(schema_id)
                     if self._schema.schema_type != "JSON":
                         raise SerializationError(
-                            "Schema type mismatch. Expected JSON, got {}".format(
-                                self._schema.schema_type
-                            )
+                            f"Schema type mismatch. Expected JSON, got {self._schema.schema_type}"
                         )
                     self._parsed_schema = json.loads(self._schema.schema_str)
 

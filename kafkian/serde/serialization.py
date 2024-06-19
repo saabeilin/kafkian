@@ -4,9 +4,9 @@ from enum import Enum
 from confluent_kafka import avro
 from confluent_kafka.avro import CachedSchemaRegistryClient
 from confluent_kafka.schema_registry import (
-    topic_subject_name_strategy,
     record_subject_name_strategy,
     topic_record_subject_name_strategy,
+    topic_subject_name_strategy,
 )
 
 from .avroserdebase import AvroRecord, AvroSerDeBase
@@ -19,8 +19,7 @@ class SubjectNameStrategy(Enum):
 
 
 class Serializer:
-    """
-    Base class for all key and value serializers.
+    """Base class for all key and value serializers.
     This default implementation returns the value intact.
     """
 
@@ -82,8 +81,7 @@ class AvroSerializer(AvroSerializerBase):
 
 
 class AvroStringKeySerializer(AvroSerializerBase):
-    """
-    A specialized serializer for generic String keys,
+    """A specialized serializer for generic String keys,
     serialized with a simple value avro schema.
     """
 

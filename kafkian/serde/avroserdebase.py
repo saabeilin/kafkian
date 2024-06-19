@@ -9,14 +9,11 @@ MAGIC_BYTE = 0
 
 
 class HasSchemaMixin:
-    """
-    A mixing for decoded Avro record to make able to add schema attribute
-    """
+    """A mixing for decoded Avro record to make able to add schema attribute"""
 
     @property
     def schema(self) -> avro.schema.Schema:
-        """
-        :return: Avro schema for used to decode this entity
+        """:return: Avro schema for used to decode this entity
         :rtype: avro.schema.Schema
         """
         return self._schema
@@ -27,8 +24,7 @@ class AvroRecord(dict, HasSchemaMixin):
 
 
 def _wrap(value, schema: avro.schema.Schema):
-    """
-    Wraps a value into subclass with HasSchemaMixin
+    """Wraps a value into subclass with HasSchemaMixin
     :param value: a decoded value
     :param schema: corresponding Avro schema used to decode value
     :return: An instance of a dynamically created class with schema fullname
@@ -50,18 +46,15 @@ def _wrap(value, schema: avro.schema.Schema):
 
 
 class AvroSerDeBase(ConfluentMessageSerializer):
-    """
-    A subclass of MessageSerializer from Confluent's kafka-python,
+    """A subclass of MessageSerializer from Confluent's kafka-python,
     adding schema to deserialized Avro messages.
     """
 
     def decode_message(self, message):
-        """
-        Decode a message from kafka that has been encoded for use with
+        """Decode a message from kafka that has been encoded for use with
         the schema registry.
         @:param: message
         """
-
         if message is None:
             return None
 

@@ -3,6 +3,7 @@
 avro-python3==1.10.2
 confluent-kafka[avro]==2.4.0
 fastavro==1.9.4
+pydantic~=2.7.4
 
 black
 ipdb

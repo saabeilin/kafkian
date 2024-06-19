@@ -4,8 +4,7 @@ from .avroserdebase import AvroSerDeBase
 
 
 class Deserializer:
-    """
-    Base class for all key and value deserializers.
+    """Base class for all key and value deserializers.
     This default implementation returns the value intact.
     """
 

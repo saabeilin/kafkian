@@ -17,7 +17,7 @@ try:
 except ImportError:
     ProtobufSerializer = None
 
-from confluent_kafka.serialization import SerializationContext, MessageField
+from confluent_kafka.serialization import MessageField, SerializationContext
 
 from kafkian.serde.serialization import SubjectNameStrategy
 
@@ -45,8 +45,7 @@ class _PydanticKafkaMessage(BaseModel, PydanticKafkaMessageBaseMixin):
 
 
 class Producer:
-    """
-    Kafka producer with configurable key/value serializers.
+    """Kafka producer with configurable key/value serializers.
 
     Does not subclass directly from Confluent's Producer,
     since it's a cimpl and therefore not mockable.
@@ -68,16 +67,16 @@ class Producer:
 
     def __init__(
         self,
-        config: typing.Dict,
-        schema_registry_client: typing.Optional[SchemaRegistryClient] = None,
-        error_callback: typing.Optional[typing.Callable] = None,
-        delivery_success_callback: typing.Optional[typing.Callable] = None,
-        delivery_error_callback: typing.Optional[typing.Callable] = None,
+        config: dict,
+        schema_registry_client: SchemaRegistryClient | None = None,
+        error_callback: typing.Callable | None = None,
+        delivery_success_callback: typing.Callable | None = None,
+        delivery_error_callback: typing.Callable | None = None,
         metrics=None,
     ) -> None:
         self._schema_registry_client = schema_registry_client
 
-        self._serializers: typing.Dict[
+        self._serializers: dict[
             str, AvroSerializer | JSONSerializer | ProtobufSerializer
         ] = {}
 
@@ -93,12 +92,12 @@ class Producer:
         config["throttle_cb"] = self._on_throttle
         config["stats_cb"] = self._on_stats
 
-        logger.info("Initializing producer", extra=dict(config=config))
+        logger.info("Initializing producer", extra={"config": config})
         atexit.register(self._close)
         self._producer_impl = self._init_producer_impl(config)
 
     @staticmethod
-    def _init_producer_impl(config: typing.Dict[str, typing.Any]) -> ConfluentProducer:
+    def _init_producer_impl(config: dict[str, typing.Any]) -> ConfluentProducer:
         return ConfluentProducer(
             config, logger=logging.getLogger("librdkafka.producer")
         )
@@ -106,9 +105,8 @@ class Producer:
     def _close(self) -> None:
         self.flush()
 
-    def flush(self, timeout: typing.Optional[float] = None) -> None:
-        """
-        Waits for all messages in the producer queue to be delivered
+    def flush(self, timeout: float | None = None) -> None:
+        """Waits for all messages in the producer queue to be delivered
         and calls registered callbacks
 
         :param timeout:
@@ -118,9 +116,8 @@ class Producer:
         timeout = timeout or 1
         self._producer_impl.flush(timeout)
 
-    def poll(self, timeout: typing.Optional[float] = None) -> int:
-        """
-        Polls the underlying producer for events and calls registered callbacks
+    def poll(self, timeout: float | None = None) -> int:
+        """Polls the underlying producer for events and calls registered callbacks
 
         :param timeout:
         :return:
@@ -133,11 +130,10 @@ class Producer:
         topic: str,
         key: typing.AnyStr | _PydanticKafkaMessage | None,
         value: typing.AnyStr | _PydanticKafkaMessage | None,
-        headers: typing.Optional[typing.Dict[str, str]] = None,
+        headers: dict[str, str] | None = None,
         sync: bool = False,
     ) -> None:
-        """
-        Produces (`key`, `value`) to the specified `topic`.
+        """Produces (`key`, `value`) to the specified `topic`.
         If `sync` is True, waits until the message is delivered/acked.
 
         Note that it does _not_ poll when sync if False.
@@ -149,18 +145,16 @@ class Producer:
         :param headers:
         :return:
         """
-
-        key = self._serialize(key, topic, is_key=True)
+        serialized_key = self._serialize(key, topic, is_key=True)
         # If value is None, it's a "tombstone" and shall be passed through
-        if value is not None:
-            value = self._serialize(value, topic)
-        headers = headers or dict()
-        self._produce(topic, key, value, headers)
+        serialized_value = self._serialize(value, topic) if value is not None else None
+        headers = headers or {}
+        self._produce(topic, serialized_key, serialized_value, headers)
         if sync:
             self.flush()
 
     def _produce(
-        self, topic: str, key, value, headers: typing.Dict[str, str], **kwargs
+        self, topic: str, key, value, headers: dict[str, str], **kwargs
     ) -> None:
         self._producer_impl.produce(
             topic=topic,
@@ -174,32 +168,40 @@ class Producer:
         if err:
             logger.warning(
                 "Producer send failed",
-                extra=dict(
-                    error_message=str(err),
-                    topic=msg.topic(),
-                    key=msg.key(),
-                    partition=msg.partition(),
-                ),
+                extra={
+                    "error_message": str(err),
+                    "topic": msg.topic(),
+                    "key": msg.key(),
+                    "partition": msg.partition(),
+                },
             )
             if self.delivery_error_callback:
                 self.delivery_error_callback(msg, err)
         else:
             logger.debug(
                 "Producer send succeeded",
-                extra=dict(topic=msg.topic(), key=msg.key(), partition=msg.partition()),
+                extra={
+                    "topic": msg.topic(),
+                    "key": msg.key(),
+                    "partition": msg.partition(),
+                },
             )
             if self.delivery_success_callback:
                 self.delivery_success_callback(msg)
 
     def _on_error(self, error: KafkaError) -> None:
         logger.error(
-            error.str(), extra=dict(error_code=error.code(), error_name=error.name())
+            error.str(),
+            extra={
+                "error_code": error.code(),
+                "error_name": error.name(),
+            },
         )
         if self.error_callback:
             self.error_callback(error)
 
     def _on_throttle(self, event) -> None:
-        logger.warning("Throttle", extra=dict(throttle_event=event))
+        logger.warning("Throttle", extra={"throttle_event": event})
 
     def _on_stats(self, stats):
         if self.metrics:
@@ -210,7 +212,7 @@ class Producer:
             return value
         elif isinstance(value, str):
             return value.encode("utf-8")
-        elif isinstance(value, (int, float)):
+        elif isinstance(value, int | float):
             return str(value).encode("utf-8")
         elif isinstance(value, PydanticKafkaMessageBaseMixin) and isinstance(
             value, BaseModel
@@ -222,7 +224,6 @@ class Producer:
     def _serialize_pydantic(
         self, value: _PydanticKafkaMessage, topic: str, is_key: bool = False
     ) -> bytes:
-
         if value.Config.serialization_format == SerializationFormat.AVRO:
             schema = value.Config.avro_schema
             schema_str = json.dumps(schema.to_json())

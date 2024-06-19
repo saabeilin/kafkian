@@ -10,10 +10,11 @@ from kafkian.serde.serialization import Serializer
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_SERIALIZER = Serializer()
+
 
 class Producer:
-    """
-    Kafka producer with configurable key/value serializers.
+    """Kafka producer with configurable key/value serializers.
 
     Does not subclass directly from Confluent's Producer,
     since it's a cimpl and therefore not mockable.
@@ -36,8 +37,8 @@ class Producer:
     def __init__(
         self,
         config: dict,
-        value_serializer=Serializer(),
-        key_serializer=Serializer(),
+        value_serializer=DEFAULT_SERIALIZER,
+        key_serializer=DEFAULT_SERIALIZER,
         error_callback: typing.Callable | None = None,
         delivery_success_callback: typing.Callable | None = None,
         delivery_error_callback: typing.Callable | None = None,
@@ -58,7 +59,7 @@ class Producer:
         config["throttle_cb"] = self._on_throttle
         config["stats_cb"] = self._on_stats
 
-        logger.info("Initializing producer", extra=dict(config=config))
+        logger.info("Initializing producer", extra={"config": config})
         atexit.register(self._close)
         self._producer_impl = self._init_producer_impl(config)
 
@@ -72,8 +73,7 @@ class Producer:
         self.flush()
 
     def flush(self, timeout: float | None = None) -> None:
-        """
-        Waits for all messages in the producer queue to be delivered
+        """Waits for all messages in the producer queue to be delivered
         and calls registered callbacks
 
         :param timeout:
@@ -84,8 +84,7 @@ class Producer:
         self._producer_impl.flush(timeout)
 
     def poll(self, timeout: float | None = None) -> int:
-        """
-        Polls the underlying producer for events and calls registered callbacks
+        """Polls the underlying producer for events and calls registered callbacks
 
         :param timeout:
         :return:
@@ -101,8 +100,7 @@ class Producer:
         headers: dict[str, str] | None = None,
         sync: bool = False,
     ) -> None:
-        """
-        Produces (`key`, `value`) to the specified `topic`.
+        """Produces (`key`, `value`) to the specified `topic`.
         If `sync` is True, waits until the message is delivered/acked.
 
         Note that it does _not_ poll when sync if False.
@@ -118,7 +116,7 @@ class Producer:
         # If value is None, it's a "tombstone" and shall be passed through
         if value is not None:
             value = self.value_serializer.serialize(value, topic)
-        headers = headers or dict()
+        headers = headers or {}
         self._produce(topic, key, value, headers)
         if sync:
             self.flush()
@@ -138,32 +136,36 @@ class Producer:
         if err:
             logger.warning(
                 "Producer send failed",
-                extra=dict(
-                    error_message=str(err),
-                    topic=msg.topic(),
-                    key=msg.key(),
-                    partition=msg.partition(),
-                ),
+                extra={
+                    "error_message": str(err),
+                    "topic": msg.topic(),
+                    "key": msg.key(),
+                    "partition": msg.partition(),
+                },
             )
             if self.delivery_error_callback:
                 self.delivery_error_callback(msg, err)
         else:
             logger.debug(
                 "Producer send succeeded",
-                extra=dict(topic=msg.topic(), key=msg.key(), partition=msg.partition()),
+                extra={
+                    "topic": msg.topic(),
+                    "key": msg.key(),
+                    "partition": msg.partition(),
+                },
             )
             if self.delivery_success_callback:
                 self.delivery_success_callback(msg)
 
     def _on_error(self, error: KafkaError) -> None:
         logger.error(
-            error.str(), extra=dict(error_code=error.code(), error_name=error.name())
+            error.str(), extra={"error_code": error.code(), "error_name": error.name()}
         )
         if self.error_callback:
             self.error_callback(error)
 
     def _on_throttle(self, event) -> None:
-        logger.warning("Throttle", extra=dict(throttle_event=event))
+        logger.warning("Throttle", extra={"throttle_event": event})
 
     def _on_stats(self, stats):
         if self.metrics:
