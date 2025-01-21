@@ -13,6 +13,9 @@ kafka:
 systemtest: kafka
 	PYTHONPATH=. pytest -v --ff tests/system
 
+d-systemtest:
+	SCHEMA_REGISTRY_URL=http://schema-registry:8081/ KAFKA_BOOTSTRAP_SERVERS=kafka-1:9092 PYTHONPATH=. pytest -v --ff tests/system
+
 black:
 	black kafkian/ tests/
 

@@ -1,7 +1,7 @@
 version: '3.5'
 services:
   test-zookeeper-1:
-    image: confluentinc/cp-zookeeper:5.5.12
+    image: confluentinc/cp-zookeeper:7.6.1
     hostname: test-zookeeper-1
     container_name: test-zookeeper-1
     ports:
@@ -31,7 +31,7 @@ services:
           memory: 128M
 
   test-kafka-1:
-    image: confluentinc/cp-kafka:5.5.12
+    image: confluentinc/cp-kafka:7.6.1
     hostname: test-kafka-1
     container_name: test-kafka-1
     stop_grace_period: 5m
@@ -65,7 +65,7 @@ services:
           memory: 512M
 
   test-schema-registry:
-    image: confluentinc/cp-schema-registry:5.5.12
+    image: confluentinc/cp-schema-registry:7.6.1
     hostname: test-schema-registry
     container_name: test-schema-registry
     depends_on:
@@ -75,7 +75,8 @@ services:
       - "28081:8081"
     environment:
       SCHEMA_REGISTRY_HOST_NAME: "test-schema-registry"
-      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'test-zookeeper-1:2181'
+#      SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'test-zookeeper-1:2181'
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'test-kafka-1:9092'
     restart: "always"
     deploy:
       resources:
@@ -85,7 +86,33 @@ services:
         reservations:
           memory: 512M
 
+
+  kafkian:
+    image: ghcr.io/treqster/kafkian:${IMAGE_TAG:-dev}
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    environment:
+      - DEBUG=True
+      - KAFKA_BOOTSTRAP_SERVERS=test-kafka-1:9092
+    networks:
+      - data-backbone
+    command: sleep infinity
+    restart: "always"
+    deploy:
+      resources:
+        limits:
+          cpus: "1"
+          memory: 512M
+        reservations:
+          memory: 256M
+
 volumes:
   test-zookeeper-1-data:
   test-zookeeper-1-log:
   test-kafka-1-data:
+
+networks:
+  data-backbone:
+    external:
+      name: data-backbone
