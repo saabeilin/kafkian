@@ -1,2 +1,6 @@
--r requirements-test.txt
--r requirements-dev.txt
+avro-python3==1.10.2
+confluent-kafka[avro]==2.7.0
+fastavro==1.9.7
+
+-r requirements.test.txt
+-r requirements.dev.txt
