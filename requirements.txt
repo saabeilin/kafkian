@@ -1,7 +1,7 @@
 avro-python3==1.10.2
 confluent-kafka[avro]==2.7.0
 fastavro==1.9.7
-pydantic>2.0
+pydantic==2.8.0
 
 -r requirements.test.txt
 -r requirements.dev.txt
