@@ -30,28 +30,53 @@ src = ["."]
 
 line-length = 88
 lint.select = [
-    "C901",
-    "C",
-    "Q",
-    "A",
-    "N",
-    # pycodestyle
-    "E",
-    # Pyflakes
-    "F",
-    # pyupgrade
-    "UP",
-    # flake8-bugbear
-    "B",
-    # flake8-simplify
-    "SIM",
-    # isort
-    "I",
-    # annotations
-    #        "ANN",
+    #    "ALL"
+
+    "F",    # Pyflakes
+
+    "E",    # pycodestyle
+    "W",    # pycodestyle
+
+    "C90",  # mccabe
+
+    "I",    # isort
+
+    "N",    # pep8-naming
+#    "D",    # pydocstyle/flake8-docstrings
+
+    "C",    # complexity
+    "Q",    # flake8-quotes
+    "A",    # flake8-builtins
+
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    ##    "PD",   # pandas-vet
+    ##        "PL",   # pylint
+    #    #    "ANN", # annotations
 ]
 lint.ignore = [
+    "ANN", # annotations
     "ANN101", # missing-type-self
+    "A002", #  Argument `id` is shadowing a Python builtin - TODO: Fix this
+    "N818", # Exception name should be named with an Error suffix - TODO: discuss
+
+    "S101", # Use of assert detected. The enclosed code will be removed when compiling to optimised byte code. TODO: exclude for tests
+
+    "FIX002", # Line contains TODO - this is a warning, not an error :)
+    "TD002", # Missing author in TODO
+    "TD003", # Missing issue link for TODO
+
+    "PLR2004", # Magic value used in comparison - TODO: exclude for tests?
+    "ERA001", # Found commented-out code - this is a warning, not an error :)
+    "D100", # Missing docstring in public module - TODO: exclude?
+    "D101", # Missing docstring in public class
+    "D102", # Missing docstring in public method - TODO: exclude?
+    "D103", # Missing docstring in public function - TODO: exclude?
+    "D104", # Missing docstring in public package
+    "D105", # Missing docstring in magic method
+    "D106", # Missing docstring in public nested class
+    "D107", # Missing docstring in `__init__`
 ]
 lint.fixable = ["ALL"]
 lint.unfixable = []
@@ -62,7 +87,7 @@ exclude = [
     ".tox",
     ".venv"
 ]
-target-version = "py310"
+target-version = "py311"
 
 [tool.ruff.lint.mccabe]
 # Flake8 is 15 - which I feel is too high
