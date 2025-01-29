@@ -1,22 +1,27 @@
 import atexit
 import logging
 import socket
+import struct
 import typing
+from types import TracebackType
 
 from confluent_kafka.cimpl import Consumer as ConfluentConsumer
 from confluent_kafka.cimpl import KafkaError, TopicPartition
+from confluent_kafka.cimpl import Message as ConfluentMessage
+from confluent_kafka.schema_registry import _MAGIC_BYTE, SchemaRegistryClient
+from confluent_kafka.schema_registry.avro import AvroDeserializer, _ContextStringIO
+from confluent_kafka.serialization import MessageField, SerializationContext
 
+from kafkian.confluent_kafka_shims.json_schema import JSONDeserializer
 from kafkian.exceptions import KafkianException
 from kafkian.message import Message
 from kafkian.metrics import KafkaMetrics
-from kafkian.serde.deserialization import Deserializer
 
 logger = logging.getLogger(__name__)
 
 
 class Consumer:
-    """
-    Kafka consumer with configurable key/value deserializers.
+    """Kafka consumer with configurable key/value deserializers.
 
     Can be used both as a context manager or generator.
 
@@ -44,8 +49,7 @@ class Consumer:
         self,
         config: dict[str, typing.Any],
         topics: typing.Iterable[str],
-        value_deserializer: Deserializer = Deserializer(),
-        key_deserializer: Deserializer = Deserializer(),
+        schema_registry_client: SchemaRegistryClient | None = None,
         error_callback: typing.Callable | None = None,
         commit_success_callback: typing.Callable | None = None,
         commit_error_callback: typing.Callable | None = None,
@@ -55,8 +59,7 @@ class Consumer:
         self.topics = list(topics)
         self.non_blocking = False  # TODO
         self.timeout = 0.1  # TODO
-        self.key_deserializer = key_deserializer
-        self.value_deserializer = value_deserializer
+        self._schema_registry_client = schema_registry_client
 
         self.error_callback = error_callback
         self.commit_success_callback = commit_success_callback
@@ -64,13 +67,15 @@ class Consumer:
 
         self.metrics = metrics
 
+        self._deserializers: dict[int, AvroDeserializer | JSONDeserializer] = {}
+
         config = {**self.DEFAULT_CONFIG, **config}
         config["on_commit"] = self._on_commit
         config["error_cb"] = self._on_error
         config["throttle_cb"] = self._on_throttle
         config["stats_cb"] = self._on_stats
 
-        logger.info("Initializing consumer", extra=dict(config=config))
+        logger.info("Initializing consumer", extra={"config": config})
         atexit.register(self._close)
         self._consumer_impl = self._init_consumer_impl(config)
         self._generator = self._message_generator()
@@ -87,11 +92,11 @@ class Consumer:
         self._consumer_impl.subscribe(self.topics)
         self._subscribed = True
 
-    def __iter__(self):
+    def __iter__(self) -> "Consumer":
         self._subscribe()
         return self
 
-    def __next__(self):
+    def __next__(self) -> Message | None:
         self._subscribe()
         try:
             return next(self._generator)
@@ -99,31 +104,35 @@ class Consumer:
             self._close()
             raise
 
-    def __enter__(self):
+    def __enter__(self) -> "Consumer":
         self._consumer_impl.subscribe(self.topics)
         return self
 
-    def __exit__(self, exc_type, exc_value, tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
         self._close()
 
     def _close(self) -> None:
-        """
-        Close down the consumer cleanly accordingly:
-         - stops consuming
-         - commit offsets (only on auto commit)
-         - leave consumer group
+        """Close down the consumer cleanly accordingly:
+        - stops consuming
+        - commit offsets (only on auto commit)
+        - leave consumer group
         """
         logger.info("Closing consumer")
-        try:
+        try:  # noqa: SIM105
             self._consumer_impl.close()
         except RuntimeError:
             # Consumer is probably already closed
             pass
 
-    def _poll(self):
+    def _poll(self) -> ConfluentMessage:
         return self._consumer_impl.poll(timeout=self.timeout)
 
-    def _message_generator(self):
+    def _message_generator(self) -> typing.Generator[Message | None, None, None]:
         while True:
             message = self._poll()
             if message is None:
@@ -134,44 +143,89 @@ class Consumer:
                 if message.error().code() == KafkaError._PARTITION_EOF:
                     continue
                 raise KafkianException(message.error())
-            yield Message(message, self.key_deserializer, self.value_deserializer)
+            yield self._deserialize(message)
+
+    def _get_schema_id(self, data: bytes) -> int:
+        with _ContextStringIO(data) as payload:
+            magic, schema_id = struct.unpack(">bI", payload.read(5))
+            return schema_id if magic == _MAGIC_BYTE else None
+
+    def _try_deserialize(
+        self, data: bytes, topic: str, is_key: bool = False
+    ) -> None | bytes | dict:
+        if data is None:
+            return None
+
+        schema_id = self._get_schema_id(data)
+        # TODO: the following is WRONG if it's not an avro message
+        if schema_id is None:
+            return data
+
+        ser_context = SerializationContext(
+            topic,
+            MessageField.KEY if is_key else MessageField.VALUE,
+        )
+
+        deserializer = self._deserializers.get(schema_id)
+        if deserializer:
+            return deserializer(data, ser_context)
+
+        for deserializer_cls in [AvroDeserializer, JSONDeserializer]:
+            deserializer = deserializer_cls(self._schema_registry_client)
+            try:
+                deserialized = deserializer(data, ser_context)
+                self._deserializers[schema_id] = deserialized
+                return deserialized
+            except Exception as e:
+                logger.debug(
+                    "Deserializer failed to deserialize message",
+                    extra={"deserializer": deserializer, "error_message": str(e)},
+                )
+        # We can't tell if the data is a string or just bytes, so we return it as is
+        # return data.decode("utf-8")
+        return data
+
+    def _deserialize(self, message: ConfluentMessage) -> Message:
+        return Message(
+            message,
+            self._try_deserialize(message.key(), message.topic(), is_key=True),
+            self._try_deserialize(message.value(), message.topic(), is_key=False),
+        )
 
     def commit(
         self, message: Message | None = None, sync: bool = True
     ) -> list[TopicPartition] | None:
-        """
-        Commits current consumer offsets.
+        """Commits current consumer offsets.
 
         :param message: message to commit offset for. If None, commits all offsets: use with caution
         :param sync: do a synchronous commit (true by default)
         """
         if not message:
             return self._consumer_impl.commit(asynchronous=not sync)
-
         return self._consumer_impl.commit(message.message, asynchronous=not sync)
 
-    def _on_commit(self, err, topics_partitions) -> None:
+    def _on_commit(self, err: KafkaError, topics_partitions) -> None:
         if err:
-            logger.warning("Offset commit failed", extra=dict(error_message=str(err)))
+            logger.warning("Offset commit failed", extra={"error_message": str(err)})
             if self.commit_error_callback:
                 self.commit_error_callback(topics_partitions, err)
         else:
             logger.debug(
                 "Offset commit succeeded",
-                extra=dict(topics_partitions=topics_partitions),
+                extra={"topics_partitions": topics_partitions},
             )
             if self.commit_success_callback:
                 self.commit_success_callback(topics_partitions)
 
     def _on_error(self, error: KafkaError) -> None:
         logger.error(
-            error.str(), extra=dict(error_code=error.code(), error_name=error.name())
+            error.str(), extra={"error_code": error.code(), "error_name": error.name()}
         )
         if self.error_callback:
             self.error_callback(error)
 
     def _on_throttle(self, event) -> None:
-        logger.warning("Throttle", extra=dict(throttle_event=event))
+        logger.warning("Throttle", extra={"throttle_event": event})
 
     def _on_stats(self, stats: str) -> None:
         if self.metrics:

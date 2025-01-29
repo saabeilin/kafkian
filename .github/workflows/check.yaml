@@ -38,6 +38,7 @@ jobs:
         python-version: [ "3.11", "3.12", "3.13" ]
         confluent-kafka-python-version: [ "2.6.0", "2.7.0", "2.8.0" ]
         fastavro-version: [ "1.9.7", "1.10.0" ]
+        pydantic-version: [ "2.8.0", "2.10.6" ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -46,6 +47,6 @@ jobs:
       - name: install requirements
         run: pip3 install -r requirements.dev.txt
       - name: install dependencies
-        run: pip3 install confluent-kafka[avro]==${{ matrix.confluent-kafka-python-version }} fastavro==${{ matrix.fastavro-version }}
+        run: pip3 install confluent-kafka[avro]==${{ matrix.confluent-kafka-python-version }} fastavro==${{ matrix.fastavro-version }} pydantic==${{ matrix.pydantic-version }}
       - name: Run unit-tests
         run: make unittest

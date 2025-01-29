@@ -1,5 +1,5 @@
 import uuid
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 from confluent_kafka import avro
@@ -11,7 +11,7 @@ from kafkian.serde.serialization import AvroSerializer
 
 KAFKA_BOOTSTRAP_SERVERS = "localhost:29092"
 TEST_TOPIC = "test.test." + str(uuid.uuid4())
-SCHEMA_REGISTRY_URL = "https://localhost:28081"
+SCHEMA_REGISTRY_URL = "mock://"
 
 CONSUMER_CONFIG = {
     "bootstrap.servers": KAFKA_BOOTSTRAP_SERVERS,
@@ -42,13 +42,23 @@ class Message(AvroRecord):
 message = Message({"name": "some name"})
 
 
-serializer = AvroSerializer(schema_registry_url=SCHEMA_REGISTRY_URL)
-deserializer = AvroDeserializer(schema_registry_url=SCHEMA_REGISTRY_URL)
+@pytest.fixture
+def serializer(mock_schema_registry_client):
+    return AvroSerializer(schema_registry_client=mock_schema_registry_client)
 
 
 @pytest.fixture
-def consumer():
-    return Consumer(CONSUMER_CONFIG, [TEST_TOPIC], value_deserializer=deserializer)
+def deserializer(mock_schema_registry_client):
+    return AvroDeserializer(schema_registry_client=mock_schema_registry_client)
+
+
+@pytest.fixture
+def consumer(mock_schema_registry_client):
+    return Consumer(
+        CONSUMER_CONFIG,
+        [TEST_TOPIC],
+        schema_registry_client=mock_schema_registry_client,
+    )
 
 
 class MockMessage(Mock):
@@ -68,19 +78,7 @@ class MockMessage(Mock):
         return None
 
 
-@patch(
-    "confluent_kafka.avro.CachedSchemaRegistryClient.register",
-    MagicMock(return_value=1),
-)
-@patch(
-    "confluent_kafka.avro.CachedSchemaRegistryClient.get_latest_schema",
-    MagicMock(return_value=(1, message._schema, 1)),
-)
-@patch(
-    "confluent_kafka.avro.CachedSchemaRegistryClient.get_by_id",
-    MagicMock(return_value=message._schema),
-)
-def test_consume_one_avro_value(consumer):
+def test_consume_one_avro_value(consumer, serializer):
     key = bytes(str(uuid.uuid4()), encoding="utf8")
     value = message
 

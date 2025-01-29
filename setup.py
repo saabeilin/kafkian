@@ -29,6 +29,7 @@ setup(
         "confluent-kafka>=2.3.0",
         "fastavro>=1.9.0",
         "avro-python3>=1.8.2",
+        "pydantic>2.0.0",
     ],
     zip_safe=False,
 )
