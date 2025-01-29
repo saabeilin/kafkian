@@ -156,7 +156,7 @@ class JSONDeserializer(Deserializer):
                 else:
                     validate(instance=obj_dict, schema=self._parsed_schema)
             except ValidationError as ve:
-                raise SerializationError(ve.message)
+                raise SerializationError(ve.message) from ve
 
             if self._from_dict is not None:
                 return self._from_dict(obj_dict, ctx)

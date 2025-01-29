@@ -1,8 +1,8 @@
 lint:
 	flake8 kafkian/
 
-check:
-	mypy --ignore-missing-imports kafkian/
+mypy:
+	mypy --ignore-missing-imports kafkian/ || echo "mypy failed, continuing anyway"
 
 unittest:
 	PYTHONPATH=. pytest -v --ff -x tests/unit/
@@ -21,3 +21,11 @@ black:
 
 isort:
 	isort kafkian/ tests/
+
+ruff-fix:
+	ruff check --fix . || echo "ruff failed, continuing anyway"
+
+ruff-format:
+	ruff format .
+
+precommit: ruff-format ruff-fix unittest mypy

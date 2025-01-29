@@ -2,8 +2,8 @@ import abc
 from enum import Enum
 
 from confluent_kafka import avro
-from confluent_kafka.avro import CachedSchemaRegistryClient
 from confluent_kafka.schema_registry import (
+    SchemaRegistryClient,
     record_subject_name_strategy,
     topic_record_subject_name_strategy,
     topic_subject_name_strategy,
@@ -33,14 +33,13 @@ class Serializer:
 class AvroSerializerBase(Serializer):
     def __init__(
         self,
-        schema_registry_url: str,
+        schema_registry_client: SchemaRegistryClient,
         auto_register_schemas: bool = True,
         subject_name_strategy: SubjectNameStrategy = SubjectNameStrategy.RecordNameStrategy,
         **kwargs,
     ):
         super().__init__(**kwargs)
-        schema_registry_url = schema_registry_url
-        self.schema_registry = CachedSchemaRegistryClient(schema_registry_url)
+        self.schema_registry = schema_registry_client
         self.auto_register_schemas = auto_register_schemas
         self.subject_name_strategy = subject_name_strategy
         self._serializer_impl = AvroSerDeBase(self.schema_registry)
@@ -60,10 +59,14 @@ class AvroSerializerBase(Serializer):
         subject = self._get_subject(topic, schema, is_key)
 
         if self.auto_register_schemas:
-            schema_id = self.schema_registry.register(subject, schema)
-            schema = self.schema_registry.get_by_id(schema_id)
+            schema_id = self.schema_registry.register_schema(subject, schema)
+            schema = self.schema_registry.get_schema(schema_id)
         else:
-            schema_id, schema, _ = self.schema_registry.get_latest_schema(subject)
+            latest_schema = self.schema_registry.get_latest_with_metadata(subject)
+            if latest_schema is None:
+                raise ValueError(f"Schema not found for subject {subject}")
+            schema_id = latest_schema.schema_id
+            schema = latest_schema.schema
 
         return schema_id, schema
 

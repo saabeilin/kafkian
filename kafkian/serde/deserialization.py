@@ -1,4 +1,4 @@
-from confluent_kafka.avro import CachedSchemaRegistryClient
+from confluent_kafka.schema_registry import SchemaRegistryClient
 
 from .avroserdebase import AvroSerDeBase
 
@@ -16,9 +16,9 @@ class Deserializer:
 
 
 class AvroDeserializer(Deserializer):
-    def __init__(self, schema_registry_url: str, **kwargs) -> None:
+    def __init__(self, schema_registry_client: SchemaRegistryClient, **kwargs) -> None:
         super().__init__(**kwargs)
-        self.schema_registry = CachedSchemaRegistryClient(schema_registry_url)
+        self.schema_registry = schema_registry_client
         self._serializer_impl = AvroSerDeBase(self.schema_registry)
 
     def deserialize(self, value, **kwargs):

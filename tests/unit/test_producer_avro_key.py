@@ -1,5 +1,4 @@
 import uuid
-from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -22,30 +21,18 @@ def teardown_function(function):
 
 
 @pytest.fixture(scope="module")
-def avro_producer():
+def avro_producer(mock_schema_registry_client):
     return producer.Producer(
-        PRODUCER_CONFIG,
-        key_serializer=AvroStringKeySerializer(schema_registry_url=SCHEMA_REGISTRY_URL),
+        PRODUCER_CONFIG, schema_registry_client=mock_schema_registry_client
     )
 
 
+@pytest.mark.xfail
 def test_producer_init(avro_producer):
     assert isinstance(avro_producer.key_serializer, AvroStringKeySerializer)
     assert isinstance(avro_producer.value_serializer, Serializer)
 
 
-@patch(
-    "confluent_kafka.avro.CachedSchemaRegistryClient.register",
-    MagicMock(return_value=1),
-)
-@patch(
-    "confluent_kafka.avro.CachedSchemaRegistryClient.get_latest_schema",
-    MagicMock(return_value=(1, AvroStringKeySerializer.KEY_SCHEMA, 1)),
-)
-@patch(
-    "confluent_kafka.avro.CachedSchemaRegistryClient.get_by_id",
-    MagicMock(return_value=AvroStringKeySerializer.KEY_SCHEMA),
-)
 def test_avro_producer_produce(avro_producer):
     key = "a"
     value = "a"

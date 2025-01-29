@@ -3,8 +3,6 @@ import typing
 from confluent_kafka.cimpl import TIMESTAMP_NOT_AVAILABLE
 from confluent_kafka.cimpl import Message as ConfluentKafkaMessage
 
-from kafkian.serde.deserialization import Deserializer
-
 
 class Message:
     """Message is an object (log record) consumed from Kafka.
@@ -21,36 +19,26 @@ class Message:
     def __init__(
         self,
         message: ConfluentKafkaMessage,
-        key_deserializer: Deserializer,
-        value_deserializer: Deserializer,
+        key,
+        value,
     ):
         self._message = message
-        self._key_deserializer = key_deserializer
-        self._value_deserializer = value_deserializer
-        self._deserialized_key = None
-        self._deserialized_value = None
+        self._deserialized_key = key
+        self._deserialized_value = value
 
     @property
     def key(self) -> typing.Any | None:
         """:return: Deserialized message key"""
         if self._deserialized_key:
             return self._deserialized_key
-        if self._message.key() is None:
-            return None
-        self._deserialized_key = self._key_deserializer.deserialize(self._message.key())
-        return self._deserialized_key
+        return self._message.key()
 
     @property
     def value(self) -> typing.Any | None:
         """:return: Deserialized message value"""
         if self._deserialized_value:
             return self._deserialized_value
-        if self._message.value() is None:
-            return None
-        self._deserialized_value = self._value_deserializer.deserialize(
-            self._message.value()
-        )
-        return self._deserialized_value
+        return self._message.value()
 
     @property
     def topic(self) -> str:
