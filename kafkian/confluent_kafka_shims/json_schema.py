@@ -18,10 +18,7 @@
 import json
 import struct
 
-from confluent_kafka.schema_registry import (
-    _MAGIC_BYTE,
-    Schema,
-)
+from confluent_kafka.schema_registry import _MAGIC_BYTE, Schema
 from confluent_kafka.schema_registry.json_schema import (
     _ContextStringIO,
     _resolve_named_schema,

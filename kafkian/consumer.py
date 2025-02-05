@@ -174,7 +174,7 @@ class Consumer:
             deserializer = deserializer_cls(self._schema_registry_client)
             try:
                 deserialized = deserializer(data, ser_context)
-                self._deserializers[schema_id] = deserialized
+                self._deserializers[schema_id] = deserializer
                 return deserialized
             except Exception as e:
                 logger.debug(

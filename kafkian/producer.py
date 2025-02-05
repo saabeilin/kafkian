@@ -154,7 +154,12 @@ class Producer:
             self.flush()
 
     def _produce(
-        self, topic: str, key, value, headers: dict[str, str], **kwargs
+        self,
+        topic: str,
+        key: bytes | None,
+        value: bytes | None,
+        headers: dict[str, str],
+        **kwargs: typing.Any,
     ) -> None:
         self._producer_impl.produce(
             topic=topic,
@@ -207,8 +212,15 @@ class Producer:
         if self.metrics:
             self.metrics.send(stats)
 
-    def _serialize(self, value, topic: str, is_key: bool = False) -> bytes:
-        if isinstance(value, bytes):
+    def _serialize(
+        self,
+        value: None | bytes | str | int | float | _PydanticKafkaMessage,
+        topic: str,
+        is_key: bool = False,
+    ) -> bytes | None:
+        if value is None:
+            return None
+        elif isinstance(value, bytes):
             return value
         elif isinstance(value, str):
             return value.encode("utf-8")
