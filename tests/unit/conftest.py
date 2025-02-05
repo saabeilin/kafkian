@@ -5,6 +5,8 @@ producer_poll_mock = Mock(return_value=1)
 producer_flush_mock = Mock()
 consumer_close_mock = Mock()
 
+from .fixtures import mock_schema_registry_client  # noqa
+
 mocks = [
     # patch('datadog.statsd', Mock()),
     patch("kafkian.producer.Producer._init_producer_impl", Mock(return_value=Mock())),

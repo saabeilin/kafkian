@@ -56,8 +56,11 @@ lint.select = [
     #    #    "ANN", # annotations
 ]
 lint.ignore = [
+
+    "E501", # Line too long - TODO: exclude for now as we have lots of commented out code
+
     "ANN", # annotations
-    "ANN101", # missing-type-self
+#    "ANN101", # missing-type-self - already disabled
     "A002", #  Argument `id` is shadowing a Python builtin - TODO: Fix this
     "N818", # Exception name should be named with an Error suffix - TODO: discuss
 
@@ -91,4 +94,4 @@ target-version = "py311"
 
 [tool.ruff.lint.mccabe]
 # Flake8 is 15 - which I feel is too high
-max-complexity = 8
+max-complexity = 10

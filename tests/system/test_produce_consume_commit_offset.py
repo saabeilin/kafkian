@@ -1,10 +1,11 @@
+import os
 import uuid
 
 import pytest
 
 from kafkian import Consumer, Producer
 
-KAFKA_BOOTSTRAP_SERVERS = "localhost:29092"
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:29092")
 TEST_TOPIC = "test.test." + str(uuid.uuid4())
 
 CONSUMER_CONFIG = {

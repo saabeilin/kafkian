@@ -1,3 +1,4 @@
+import os
 import time
 import uuid
 
@@ -9,8 +10,8 @@ from kafkian.serde.avroserdebase import AvroRecord
 from kafkian.serde.deserialization import AvroDeserializer
 from kafkian.serde.serialization import AvroSerializer, AvroStringKeySerializer
 
-KAFKA_BOOTSTRAP_SERVERS = "localhost:29092"
-SCHEMA_REGISTRY_URL = "http://localhost:28081"
+KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:29092")
+SCHEMA_REGISTRY_URL = os.getenv("SCHEMA_REGISTRY_URL", "http://localhost:28081")
 TEST_TOPIC = "test.test." + str(uuid.uuid4())
 
 CONSUMER_CONFIG = {

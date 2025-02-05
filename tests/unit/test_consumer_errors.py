@@ -43,6 +43,12 @@ class MockMessage:
     def error(self):
         return self._error
 
+    def topic(self):
+        return TEST_TOPIC
+
+    def partition(self):
+        return 0
+
 
 class MockError:
     def __init__(self, _code):

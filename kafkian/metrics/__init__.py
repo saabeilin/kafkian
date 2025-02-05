@@ -1,5 +1,4 @@
 import json
-import typing
 from functools import partial
 
 from kafkian.metrics.consts import (
@@ -10,8 +9,7 @@ from kafkian.metrics.consts import (
 
 
 class KafkaMetrics:
-    """
-    Send librdkafka statistics to Datadog/statsd.
+    """Send librdkafka statistics to Datadog/statsd.
 
     For more information see:
     https://github.com/edenhill/librdkafka/wiki/Statistics
