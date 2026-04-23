@@ -24,9 +24,9 @@
 
 | Class | Location | Purpose |
 |---|---|---|
-| `KafkianConsumer` | `kafkian2/consumer.py` | Poll loop, Avro decode, offset commit |
-| `UnknownSchema` | `kafkian2/consumer.py` | Enum controlling behaviour for unregistered record names |
-| `SchemaRegistry` | `kafkian2/schema_registry.py` | Model index via `register_model` / `lookup_model` |
+| `KafkianConsumer` | `kafkian/consumer.py` | Poll loop, Avro decode, offset commit |
+| `UnknownSchema` | `kafkian/consumer.py` | Enum controlling behaviour for unregistered record names |
+| `SchemaRegistry` | `kafkian/schema_registry.py` | Model index via `register_model` / `lookup_model` |
 
 ## Usage
 
@@ -71,7 +71,7 @@ with KafkianConsumer(raw_consumer, sr, unknown_schemas=UnknownSchema.SKIP) as co
         consumer.commit_offset(message)
 ```
 
-Unknown messages are logged at `WARNING` level via the `kafkian2.consumer` logger and silently dropped — the loop continues without yielding them.
+Unknown messages are logged at `WARNING` level via the `kafkian.consumer` logger and silently dropped — the loop continues without yielding them.
 
 ### Batch commit
 

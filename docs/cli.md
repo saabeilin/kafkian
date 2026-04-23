@@ -1,6 +1,6 @@
 # CLI
 
-`kafkian2` ships a `generate` command that reads `.avsc` files and emits Python source with Pydantic models.
+`kafkian` ships a `generate` command that reads `.avsc` files and emits Python source with Pydantic models.
 
 ## Design decisions
 

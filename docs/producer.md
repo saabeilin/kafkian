@@ -22,9 +22,9 @@
 
 | Class | Location | Purpose |
 |---|---|---|
-| `AvroModel` | `kafkian2/base.py` | Frozen Pydantic base with `_schema: ClassVar[dict]` |
-| `SchemaRegistry` | `kafkian2/schema_registry.py` | Model index + registration cache + SR facade |
-| `KafkianProducer` | `kafkian2/producer.py` | Lazy serializer creation, key handling, produce delegation |
+| `AvroModel` | `kafkian/base.py` | Frozen Pydantic base with `_schema: ClassVar[dict]` |
+| `SchemaRegistry` | `kafkian/schema_registry.py` | Model index + registration cache + SR facade |
+| `KafkianProducer` | `kafkian/producer.py` | Lazy serializer creation, key handling, produce delegation |
 
 ## Usage
 

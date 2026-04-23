@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "kafkian2"
+name = "kafkian"
 version = "0.1.0"
 description = "Opinionated Kafka client for Python, with a focus on Avro serialization and Pydantic models."
 readme = "README.md"
@@ -31,10 +31,10 @@ dependencies = [
 ]
 
 [project.scripts]
-avsc2pydantic = "kafkian2.cli:app"
+avsc2pydantic = "kafkian.cli:app"
 
 [project.urls]
-Repository = "https://github.com/saabeilin/kafkian2"
+Repository = "https://github.com/saabeilin/kafkian"
 
 [dependency-groups]
 dev = [

@@ -31,10 +31,10 @@ First-registered wins among routes with equal scores.
 
 | Class | Location | Purpose |
 |---|---|---|
-| `KafkianApp` | `kafkian2/app.py` | Consume loop, dispatch, offset commit, error hooks |
-| `Router` | `kafkian2/app.py` | Standalone route registry for Blueprint-style composition |
-| `RouteEntry` | `kafkian2/app.py` | Frozen dataclass holding one registered route + pre-computed score |
-| `HandlerFunc` | `kafkian2/app.py` | Type alias: `Callable[[Message], None]` |
+| `KafkianApp` | `kafkian/app.py` | Consume loop, dispatch, offset commit, error hooks |
+| `Router` | `kafkian/app.py` | Standalone route registry for Blueprint-style composition |
+| `RouteEntry` | `kafkian/app.py` | Frozen dataclass holding one registered route + pre-computed score |
+| `HandlerFunc` | `kafkian/app.py` | Type alias: `Callable[[Message], None]` |
 
 ## Usage
 

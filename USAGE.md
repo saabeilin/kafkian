@@ -1,4 +1,4 @@
-# kafkian2 Usage
+# kafkian Usage
 
 ## 1. Generate models from Avro schemas
 

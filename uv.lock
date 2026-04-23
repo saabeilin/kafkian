@@ -424,7 +424,7 @@ wheels = [
 ]
 
 [[package]]
-name = "kafkian2"
+name = "kafkian"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
