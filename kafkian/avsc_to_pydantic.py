@@ -36,6 +36,33 @@ def _simple_name(full_name: str) -> str:
     return full_name.split(".")[-1]
 
 
+def _union_annotation(parts: list[str]) -> str:
+    """Build a Python union annotation from resolved member annotations."""
+    non_none = [p for p in parts if p != "None"]
+    if not non_none:
+        return "None"
+    joined = " | ".join(non_none)
+    return f"{joined} | None" if len(non_none) < len(parts) else joined
+
+
+def _kind_annotation(
+    kind: str | None, avro_type: dict[str, Any], imports: set[str]
+) -> str:
+    match kind:
+        case "record" | "enum":
+            return _simple_name(avro_type["name"])
+        case "array":
+            return f"list[{type_annotation(avro_type['items'], imports)}]"
+        case "map":
+            return f"dict[str, {type_annotation(avro_type['values'], imports)}]"
+        case "fixed":
+            return "bytes"
+        case _ if kind in _PRIMITIVES:
+            return _PRIMITIVES[kind]
+        case _:
+            return "Any"
+
+
 def type_annotation(avro_type: AvroType, imports: set[str]) -> str:
     """Convert an Avro type definition to a Python type annotation string.
 
@@ -43,40 +70,14 @@ def type_annotation(avro_type: AvroType, imports: set[str]) -> str:
     """
     if isinstance(avro_type, str):
         return _PRIMITIVES.get(avro_type, _simple_name(avro_type))
-
     if isinstance(avro_type, list):
-        parts = [type_annotation(t, imports) for t in avro_type]
-        non_none = [p for p in parts if p != "None"]
-        has_none = len(non_none) < len(parts)
-        joined = " | ".join(non_none)
-        return f"{joined} | None" if has_none else joined
-
+        return _union_annotation([type_annotation(t, imports) for t in avro_type])
     logical = avro_type.get("logicalType")
     if logical in _LOGICAL:
         ann, mod = _LOGICAL[logical]
         imports.add(mod)
         return ann
-
-    kind = avro_type.get("type")
-
-    match kind:
-        case "record":
-            return _simple_name(avro_type["name"])
-        case "array":
-            item = type_annotation(avro_type["items"], imports)
-            return f"list[{item}]"
-        case "map":
-            val = type_annotation(avro_type["values"], imports)
-            return f"dict[str, {val}]"
-        case "enum":
-            return _simple_name(avro_type["name"])
-        case "fixed":
-            return "bytes"
-        case _ if kind in _PRIMITIVES:
-            return _PRIMITIVES[kind]
-        case _:
-            imports.add("Any")
-            return "Any"
+    return _kind_annotation(avro_type.get("type"), avro_type, imports)
 
 
 def python_literal(value: Any) -> str:
@@ -88,6 +89,12 @@ def python_literal(value: Any) -> str:
     return repr(value)
 
 
+def _collect_record(schema: dict[str, Any], result: list[dict[str, Any]]) -> None:
+    for field in schema.get("fields", []):
+        collect_named_types(field.get("type", "null"), result)
+    result.append(schema)
+
+
 def collect_named_types(schema: AvroType, result: list[dict[str, Any]]) -> None:
     """Depth-first collect all record and enum definitions in dependency order."""
     if isinstance(schema, list):
@@ -96,18 +103,26 @@ def collect_named_types(schema: AvroType, result: list[dict[str, Any]]) -> None:
         return
     if not isinstance(schema, dict):
         return
-
     match schema.get("type"):
         case "record":
-            for field in schema.get("fields", []):
-                collect_named_types(field.get("type"), result)
-            result.append(schema)
+            _collect_record(schema, result)
         case "enum":
             result.append(schema)
         case "array":
-            collect_named_types(schema.get("items"), result)
+            collect_named_types(schema.get("items", "null"), result)
         case "map":
-            collect_named_types(schema.get("values"), result)
+            collect_named_types(schema.get("values", "null"), result)
+
+
+def _push_named_children(node: dict[str, Any], stack: list[AvroType]) -> None:
+    match node.get("type"):
+        case "record":
+            for field in node.get("fields", []):
+                stack.append(field.get("type", "null"))
+        case "array":
+            stack.append(node.get("items", "null"))
+        case "map":
+            stack.append(node.get("values", "null"))
 
 
 def find_named_deps(avro_type: AvroType) -> set[str]:
@@ -117,25 +132,15 @@ def find_named_deps(avro_type: AvroType) -> set[str]:
     Primitive type names are excluded.
     """
     deps: set[str] = set()
-
-    def walk(node: AvroType) -> None:
-        if isinstance(node, str):
-            if node not in _PRIMITIVES:
-                deps.add(node)
+    stack: list[AvroType] = [avro_type]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, str) and node not in _PRIMITIVES:
+            deps.add(node)
         elif isinstance(node, list):
-            for item in node:
-                walk(item)
+            stack.extend(node)
         elif isinstance(node, dict):
-            match node.get("type"):
-                case "record":
-                    for field in node.get("fields", []):
-                        walk(field.get("type"))
-                case "array":
-                    walk(node.get("items"))
-                case "map":
-                    walk(node.get("values"))
-
-    walk(avro_type)
+            _push_named_children(node, stack)
     return deps
 
 
@@ -159,32 +164,47 @@ def _build_name_map(
     return index
 
 
+def _schema_fqn(schema: dict[str, Any]) -> str:
+    """Canonical dedup/visited key: ``namespace.Name`` if namespaced, else ``Name``."""
+    name: str = schema["name"]
+    namespace: str = schema.get("namespace", "")
+    if namespace and "." not in name:
+        return f"{namespace}.{name}"
+    return name
+
+
 def _topo_sort(
     named_types: list[dict[str, Any]],
     name_map: dict[str, dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Return *named_types* ordered so every dependency precedes its dependant.
 
-    Uses iterative DFS to avoid recursion limits on deep schema chains.
+    Uses iterative post-order DFS to avoid recursion limits on deep schema chains.
     Schemas whose dependencies are not in *name_map* (external references) are
     silently ignored for ordering purposes.
     """
     result: list[dict[str, Any]] = []
-    visited: set[str] = set()
+    seen: set[str] = set()  # pushed to stack; prevents duplicate stack entries
+    done: set[str] = set()  # appended to result; prevents duplicate output
 
-    def visit(schema: dict[str, Any]) -> None:
-        name = schema["name"]
-        if name in visited:
-            return
-        visited.add(name)
-        for dep_ref in find_named_deps(schema):
-            dep = name_map.get(dep_ref)
-            if dep is not None and dep["name"] != name:
-                visit(dep)
-        result.append(schema)
-
-    for schema in named_types:
-        visit(schema)
+    for start in named_types:
+        stack: list[tuple[dict[str, Any], bool]] = [(start, False)]
+        while stack:
+            schema, post = stack.pop()
+            key = _schema_fqn(schema)
+            if post:
+                if key not in done:
+                    done.add(key)
+                    result.append(schema)
+            else:
+                if key in done or key in seen:
+                    continue
+                seen.add(key)
+                stack.append((schema, True))
+                for dep_ref in sorted(find_named_deps(schema)):
+                    dep = name_map.get(dep_ref)
+                    if dep is not None and _schema_fqn(dep) != key:
+                        stack.append((dep, False))
 
     return result
 
@@ -230,13 +250,70 @@ def _render_record(schema: dict[str, Any], avsc_dict: dict[str, Any]) -> str:
 
 
 def load_avsc(path: Path) -> list[dict[str, Any]]:
-    """Parse an .avsc file; a file may contain a single schema or a JSON array of schemas."""
+    """Parse a .avsc file.
+
+    A file may contain a single schema object or a JSON array of schemas.
+    """
     raw = json.loads(path.read_text())
     return raw if isinstance(raw, list) else [raw]
 
 
+def _collect_deduped_named_types(
+    schemas: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    named_types: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for schema in schemas:
+        candidates: list[dict[str, Any]] = []
+        collect_named_types(schema, candidates)
+        for named in candidates:
+            fqn = _schema_fqn(named)
+            if fqn not in seen:
+                seen.add(fqn)
+                named_types.append(named)
+    return named_types
+
+
+def _gather_stdlib_imports(named_types: list[dict[str, Any]]) -> set[str]:
+    stdlib_imports: set[str] = set()
+    for named in named_types:
+        if named.get("type") == "record":
+            for field in named.get("fields", []):
+                type_annotation(field["type"], stdlib_imports)
+    return stdlib_imports
+
+
+def _build_import_lines(stdlib_imports: set[str], has_enum: bool) -> list[str]:
+    lines = ["from __future__ import annotations"]
+    for mod in sorted(stdlib_imports):
+        lines.append(f"import {mod}")
+    if has_enum:
+        lines.append("import enum")
+    lines.append("from typing import Any, ClassVar")
+    lines.append("from kafkian.base import AvroModel")
+    return lines
+
+
+def _render_blocks(
+    named_types: list[dict[str, Any]],
+    top_level_by_fqn: dict[str, dict[str, Any]],
+) -> list[str]:
+    blocks: list[str] = []
+    for named in named_types:
+        match named.get("type"):
+            case "enum":
+                blocks.append(_render_enum(named))
+            case "record":
+                avsc_dict = top_level_by_fqn.get(_schema_fqn(named), named)
+                blocks.append(_render_record(named, avsc_dict))
+    return blocks
+
+
 def generate_from_dir(avsc_dir: Path) -> str:
-    """Return a Python module source with Pydantic models for all .avsc files in *avsc_dir*."""
+    """Generate Pydantic models from all .avsc files in *avsc_dir*.
+
+    Returns a Python module source string ready to be written to a file.
+    """
     schemas: list[dict[str, Any]] = []
     for path in sorted(avsc_dir.glob("*.avsc")):
         schemas.extend(load_avsc(path))
@@ -244,48 +321,14 @@ def generate_from_dir(avsc_dir: Path) -> str:
     if not schemas:
         return "# No .avsc files found\n"
 
-    # Collect named types from every file, deduplicate by full name (keep first)
-    named_types: list[dict[str, Any]] = []
-    seen: set[str] = set()
-    for schema in schemas:
-        candidates: list[dict[str, Any]] = []
-        collect_named_types(schema, candidates)
-        for named in candidates:
-            if named["name"] not in seen:
-                seen.add(named["name"])
-                named_types.append(named)
+    named_types = _collect_deduped_named_types(schemas)
+    named_types = _topo_sort(named_types, _build_name_map(named_types))
 
-    # Topologically sort so cross-file dependencies always precede their dependants
-    name_map = _build_name_map(named_types)
-    named_types = _topo_sort(named_types, name_map)
-
-    # Determine which stdlib modules are needed
-    stdlib_imports: set[str] = set()
-    for named in named_types:
-        if named.get("type") == "record":
-            for field in named.get("fields", []):
-                type_annotation(field["type"], stdlib_imports)
-
+    stdlib_imports = _gather_stdlib_imports(named_types)
     has_enum = any(n.get("type") == "enum" for n in named_types)
+    top_level_by_fqn = {_schema_fqn(s): s for s in schemas}
 
-    # Map each top-level schema by name so nested records point to their full parent
-    top_level_by_name: dict[str, dict[str, Any]] = {s["name"]: s for s in schemas}
-
-    import_lines = ["from __future__ import annotations"]
-    for mod in sorted(stdlib_imports):
-        import_lines.append(f"import {mod}")
-    if has_enum:
-        import_lines.append("import enum")
-    import_lines.append("from typing import Any, ClassVar")
-    import_lines.append("from kafkian.base import AvroModel")
-
-    blocks: list[str] = []
-    for named in named_types:
-        match named.get("type"):
-            case "enum":
-                blocks.append(_render_enum(named))
-            case "record":
-                avsc_dict = top_level_by_name.get(named["name"], named)
-                blocks.append(_render_record(named, avsc_dict))
+    import_lines = _build_import_lines(stdlib_imports, has_enum)
+    blocks = _render_blocks(named_types, top_level_by_fqn)
 
     return "\n".join(import_lines) + "\n\n\n" + "\n\n\n".join(blocks) + "\n"

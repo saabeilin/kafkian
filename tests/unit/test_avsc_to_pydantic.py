@@ -33,6 +33,8 @@ from kafkian.avsc_to_pydantic import (
         # Union: nullable
         (["null", "string"], "str | None"),
         (["string", "null"], "str | None"),
+        # Union: all-null (edge case)
+        (["null"], "None"),
         # Union: non-nullable multi-type
         (["string", "int"], "str | int"),
         # Array
@@ -66,6 +68,13 @@ def test_type_annotation_collects_stdlib_imports() -> None:
     imports2: set[str] = set()
     type_annotation({"type": "string", "logicalType": "uuid"}, imports2)
     assert "uuid" in imports2
+
+
+def test_type_annotation_unknown_type_does_not_pollute_imports() -> None:
+    imports: set[str] = set()
+    result = type_annotation({"type": "unknown_custom"}, imports)
+    assert result == "Any"
+    assert "Any" not in imports
 
 
 # ---------------------------------------------------------------------------
@@ -396,3 +405,34 @@ def test_cross_ref_schemas_contain_correct_record_names(cross_ref_dir: Path) -> 
         and node.value is not None
     }
     assert names == {"Audit", "OrderCreated", "PaymentProcessed"}
+
+
+# ---------------------------------------------------------------------------
+# Namespace-collision dedup — same simple name in different namespaces
+# ---------------------------------------------------------------------------
+
+
+def test_same_name_different_namespace_both_generated(avsc_dir: Path) -> None:
+    """Two schemas sharing a simple name in different namespaces must both be emitted."""
+    write_avsc(
+        avsc_dir,
+        "event_a",
+        {
+            "type": "record",
+            "name": "Event",
+            "namespace": "com.a",
+            "fields": [{"name": "x", "type": "string"}],
+        },
+    )
+    write_avsc(
+        avsc_dir,
+        "event_b",
+        {
+            "type": "record",
+            "name": "Event",
+            "namespace": "com.b",
+            "fields": [{"name": "y", "type": "int"}],
+        },
+    )
+    source = generate_from_dir(avsc_dir)
+    assert source.count("class Event(AvroModel):") == 2
