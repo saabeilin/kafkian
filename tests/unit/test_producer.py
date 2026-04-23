@@ -4,8 +4,8 @@ from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from confluent_kafka import TIMESTAMP_NOT_AVAILABLE
+
 from kafkian.base import AvroModel, Message
 from kafkian.producer import KafkianProducer
 

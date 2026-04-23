@@ -3,9 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from confluent_kafka import KafkaException, Producer
+from confluent_kafka import TIMESTAMP_NOT_AVAILABLE, KafkaException, Producer
 from confluent_kafka import Message as CMessage
-from confluent_kafka import TIMESTAMP_NOT_AVAILABLE
 from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import (
     MessageField,

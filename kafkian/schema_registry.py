@@ -10,7 +10,7 @@ from confluent_kafka.schema_registry import (
 )
 from confluent_kafka.schema_registry.error import SchemaRegistryError
 
-from kafkian.avsc_to_pydantic import find_named_deps, _simple_name
+from kafkian.avsc_to_pydantic import _simple_name, find_named_deps
 from kafkian.base import AvroModel
 
 _SCHEMA_NOT_FOUND = 40403

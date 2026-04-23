@@ -5,9 +5,13 @@ from collections.abc import Iterator
 from enum import Enum
 from typing import Any
 
-from confluent_kafka import Consumer, KafkaException, TopicPartition
+from confluent_kafka import (
+    TIMESTAMP_NOT_AVAILABLE,
+    Consumer,
+    KafkaException,
+    TopicPartition,
+)
 from confluent_kafka import Message as CMessage
-from confluent_kafka import TIMESTAMP_NOT_AVAILABLE
 from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import (
     MessageField,

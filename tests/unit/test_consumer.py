@@ -5,8 +5,8 @@ from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from confluent_kafka import TIMESTAMP_NOT_AVAILABLE, TopicPartition
+
 from kafkian.base import AvroModel, Message
 from kafkian.consumer import KafkianConsumer, UnknownSchema
 
