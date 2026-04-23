@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import json
 import pprint
+from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -46,15 +48,21 @@ def _union_annotation(parts: list[str]) -> str:
 
 
 def _kind_annotation(
-    kind: str | None, avro_type: dict[str, Any], imports: set[str]
+    kind: str | None,
+    avro_type: dict[str, Any],
+    imports: set[str],
+    name_resolver: Callable[[str], str] | None = None,
 ) -> str:
     match kind:
         case "record" | "enum":
-            return _simple_name(avro_type["name"])
+            name: str = avro_type["name"]
+            return name_resolver(name) if name_resolver else _simple_name(name)
         case "array":
-            return f"list[{type_annotation(avro_type['items'], imports)}]"
+            inner = type_annotation(avro_type["items"], imports, name_resolver)
+            return f"list[{inner}]"
         case "map":
-            return f"dict[str, {type_annotation(avro_type['values'], imports)}]"
+            inner = type_annotation(avro_type["values"], imports, name_resolver)
+            return f"dict[str, {inner}]"
         case "fixed":
             return "bytes"
         case _ if kind in _PRIMITIVES:
@@ -63,21 +71,28 @@ def _kind_annotation(
             return "Any"
 
 
-def type_annotation(avro_type: AvroType, imports: set[str]) -> str:
+def type_annotation(
+    avro_type: AvroType,
+    imports: set[str],
+    name_resolver: Callable[[str], str] | None = None,
+) -> str:
     """Convert an Avro type definition to a Python type annotation string.
 
     Modifies *imports* in-place with any stdlib modules required.
     """
     if isinstance(avro_type, str):
+        if name_resolver and avro_type not in _PRIMITIVES:
+            return name_resolver(avro_type)
         return _PRIMITIVES.get(avro_type, _simple_name(avro_type))
     if isinstance(avro_type, list):
-        return _union_annotation([type_annotation(t, imports) for t in avro_type])
+        parts = [type_annotation(t, imports, name_resolver) for t in avro_type]
+        return _union_annotation(parts)
     logical = avro_type.get("logicalType")
     if logical in _LOGICAL:
         ann, mod = _LOGICAL[logical]
         imports.add(mod)
         return ann
-    return _kind_annotation(avro_type.get("type"), avro_type, imports)
+    return _kind_annotation(avro_type.get("type"), avro_type, imports, name_resolver)
 
 
 def python_literal(value: Any) -> str:
@@ -209,15 +224,65 @@ def _topo_sort(
     return result
 
 
-def _render_enum(schema: dict[str, Any]) -> str:
-    name = _simple_name(schema["name"])
-    lines = [f"class {name}(str, enum.Enum):"]
+def _python_class_names(named_types: list[dict[str, Any]]) -> dict[str, str]:
+    """Map each schema FQN to a unique Python class name.
+
+    When multiple schemas share the same simple name, each is prefixed with
+    the last component of its namespace (capitalised) to avoid duplicate class
+    definitions in the generated module.
+    """
+    counts = Counter(_simple_name(s["name"]) for s in named_types)
+    result: dict[str, str] = {}
+    for schema in named_types:
+        fqn = _schema_fqn(schema)
+        simple = _simple_name(schema["name"])
+        if counts[simple] == 1:
+            result[fqn] = simple
+        else:
+            namespace: str = schema.get("namespace", "")
+            ns_tail = namespace.split(".")[-1].capitalize() if namespace else ""
+            result[fqn] = f"{ns_tail}{simple}" if ns_tail else simple
+    return result
+
+
+def _build_name_resolver(class_names: dict[str, str]) -> Callable[[str], str]:
+    """Return a resolver mapping Avro type references to Python class names.
+
+    Handles both fully-qualified references (``com.example.Event``) and simple
+    names (``Event``).  Ambiguous simple names (same simple name in multiple
+    namespaces) fall back to the simple name unchanged.
+    """
+    simple_map: dict[str, str] = {}
+    ambiguous: set[str] = set()
+    for fqn, cls_name in class_names.items():
+        simple = _simple_name(fqn)
+        if simple in simple_map:
+            ambiguous.add(simple)
+        else:
+            simple_map[simple] = cls_name
+
+    def resolve(ref: str) -> str:
+        if ref in class_names:
+            return class_names[ref]
+        simple = _simple_name(ref)
+        return simple_map.get(simple, simple) if simple not in ambiguous else simple
+
+    return resolve
+
+
+def _render_enum(schema: dict[str, Any], class_name: str) -> str:
+    lines = [f"class {class_name}(str, enum.Enum):"]
     for sym in schema["symbols"]:
         lines.append(f'    {sym} = "{sym}"')
     return "\n".join(lines)
 
 
-def _render_record(schema: dict[str, Any], avsc_dict: dict[str, Any]) -> str:
+def _render_record(
+    schema: dict[str, Any],
+    avsc_dict: dict[str, Any],
+    class_name: str,
+    name_resolver: Callable[[str], str] | None = None,
+) -> str:
     dummy: set[str] = set()
     fields = schema.get("fields", [])
 
@@ -228,13 +293,13 @@ def _render_record(schema: dict[str, Any], avsc_dict: dict[str, Any]) -> str:
     dict_repr = pprint.pformat(avsc_dict, sort_dicts=False)
     indented_repr = dict_repr.replace("\n", "\n    ")
     lines = [
-        f"class {_simple_name(schema['name'])}(AvroModel):",
+        f"class {class_name}(AvroModel):",
         f"    _schema: ClassVar[dict[str, Any]] = {indented_repr}",
     ]
 
     field_lines = []
     for field in required + optional:
-        ann = type_annotation(field["type"], dummy)
+        ann = type_annotation(field["type"], dummy, name_resolver)
         if "default" in field:
             field_lines.append(
                 f"    {field['name']}: {ann} = {python_literal(field['default'])}"
@@ -297,15 +362,21 @@ def _build_import_lines(stdlib_imports: set[str], has_enum: bool) -> list[str]:
 def _render_blocks(
     named_types: list[dict[str, Any]],
     top_level_by_fqn: dict[str, dict[str, Any]],
+    class_names: dict[str, str],
 ) -> list[str]:
+    name_resolver = _build_name_resolver(class_names)
     blocks: list[str] = []
     for named in named_types:
+        fqn = _schema_fqn(named)
+        class_name = class_names[fqn]
         match named.get("type"):
             case "enum":
-                blocks.append(_render_enum(named))
+                blocks.append(_render_enum(named, class_name))
             case "record":
-                avsc_dict = top_level_by_fqn.get(_schema_fqn(named), named)
-                blocks.append(_render_record(named, avsc_dict))
+                avsc_dict = top_level_by_fqn.get(fqn, named)
+                blocks.append(
+                    _render_record(named, avsc_dict, class_name, name_resolver)
+                )
     return blocks
 
 
@@ -324,11 +395,12 @@ def generate_from_dir(avsc_dir: Path) -> str:
     named_types = _collect_deduped_named_types(schemas)
     named_types = _topo_sort(named_types, _build_name_map(named_types))
 
+    class_names = _python_class_names(named_types)
     stdlib_imports = _gather_stdlib_imports(named_types)
     has_enum = any(n.get("type") == "enum" for n in named_types)
     top_level_by_fqn = {_schema_fqn(s): s for s in schemas}
 
     import_lines = _build_import_lines(stdlib_imports, has_enum)
-    blocks = _render_blocks(named_types, top_level_by_fqn)
+    blocks = _render_blocks(named_types, top_level_by_fqn, class_names)
 
     return "\n".join(import_lines) + "\n\n\n" + "\n\n\n".join(blocks) + "\n"

@@ -413,7 +413,7 @@ def test_cross_ref_schemas_contain_correct_record_names(cross_ref_dir: Path) -> 
 
 
 def test_same_name_different_namespace_both_generated(avsc_dir: Path) -> None:
-    """Two schemas sharing a simple name in different namespaces must both be emitted."""
+    """Two schemas sharing a simple name in different namespaces get distinct class names."""
     write_avsc(
         avsc_dir,
         "event_a",
@@ -435,4 +435,45 @@ def test_same_name_different_namespace_both_generated(avsc_dir: Path) -> None:
         },
     )
     source = generate_from_dir(avsc_dir)
-    assert source.count("class Event(AvroModel):") == 2
+    # Each schema gets a namespace-prefixed class name to avoid shadowing
+    assert "class AEvent(AvroModel):" in source
+    assert "class BEvent(AvroModel):" in source
+    assert source.count("class AEvent") == 1
+    assert source.count("class BEvent") == 1
+    # No ambiguous unqualified class is emitted
+    assert "class Event(AvroModel):" not in source
+
+
+def test_same_name_different_namespace_field_ref_resolved(avsc_dir: Path) -> None:
+    """Field annotations referencing a disambiguated type use the new Python class name."""
+    write_avsc(
+        avsc_dir,
+        "event_a",
+        {
+            "type": "record",
+            "name": "Event",
+            "namespace": "com.a",
+            "fields": [{"name": "x", "type": "string"}],
+        },
+    )
+    write_avsc(
+        avsc_dir,
+        "event_b",
+        {
+            "type": "record",
+            "name": "Event",
+            "namespace": "com.b",
+            "fields": [{"name": "y", "type": "int"}],
+        },
+    )
+    write_avsc(
+        avsc_dir,
+        "container",
+        {
+            "type": "record",
+            "name": "Container",
+            "fields": [{"name": "evt", "type": "com.a.Event"}],
+        },
+    )
+    source = generate_from_dir(avsc_dir)
+    assert "evt: AEvent" in source
