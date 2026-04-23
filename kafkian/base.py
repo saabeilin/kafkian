@@ -16,8 +16,8 @@ class Message(BaseModel):
 
     topic: str
     value: bytes | dict[str, Any] | AvroModel | None
-    key: str | None
-    headers: dict[str, str] | None = None
+    key: str | bytes | None
+    headers: dict[str, str | None] | None = None
     timestamp_ms: int | None = None
     partition: int | None = None
     offset: int | None = None

@@ -3,11 +3,11 @@ import uuid
 
 import pytest
 from confluent_kafka import avro
-
-from kafkian import Consumer, Producer
 from kafkian.serde.avroserdebase import AvroRecord
 from kafkian.serde.deserialization import AvroDeserializer
 from kafkian.serde.serialization import AvroSerializer, AvroStringKeySerializer
+
+from kafkian import Consumer, Producer
 
 KAFKA_BOOTSTRAP_SERVERS = "localhost:29092"
 SCHEMA_REGISTRY_URL = "http://localhost:28081"

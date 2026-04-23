@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -61,6 +62,7 @@ class KafkianProducer:
         on_delivery: Callable[..., None] | None = None,
         headers: dict[str, str] | list[tuple[str, str]] | None = None,
         wait: bool = True,
+        wait_timeout: float = 30.0,
     ) -> Message | None:
         """Serialise *value* and produce it to *topic*.
 
@@ -76,20 +78,15 @@ class KafkianProducer:
             wait: Block until the broker acknowledges delivery and return a
                   ``Message``.  When ``False``, returns ``None`` immediately
                   after enqueuing; call :meth:`flush` or :meth:`poll` later.
+            wait_timeout: Seconds to wait for broker acknowledgement when
+                          ``wait=True``.  Raises ``KafkaException`` on expiry.
         """
         serializer = self._get_serializer(type(value))
         serialized_value = serializer(
             value, SerializationContext(topic, MessageField.VALUE)
         )
 
-        serialized_key: bytes | None
-        match key:
-            case str():
-                serialized_key = self._key_serializer(
-                    key, SerializationContext(topic, MessageField.KEY)
-                )
-            case bytes() | None:
-                serialized_key = key
+        serialized_key = self._serialize_key(key, topic)
 
         kwargs: dict[str, Any] = {
             "topic": topic,
@@ -103,26 +100,53 @@ class KafkianProducer:
 
         if wait:
             delivered: list[CMessage] = []
-
-            def _delivery_cb(err: Any, msg: CMessage) -> None:
-                if on_delivery is not None:
-                    on_delivery(err, msg)
-                delivered.append(msg)
-
-            kwargs["on_delivery"] = _delivery_cb
+            kwargs["on_delivery"] = self._make_delivery_cb(on_delivery, delivered)
         elif on_delivery is not None:
             kwargs["on_delivery"] = on_delivery
 
         self._producer.produce(**kwargs)
 
         if wait:
-            while not delivered:
-                self._producer.poll(0.1)
+            self._wait_for_delivery(delivered, wait_timeout)
             msg = delivered[0]
             if msg.error():
                 raise KafkaException(msg.error())
             return self._to_message(msg, value=value, key=key)
         return None
+
+    def _make_delivery_cb(
+        self,
+        on_delivery: Callable[..., None] | None,
+        delivered: list[CMessage],
+    ) -> Callable[[Any, CMessage], None]:
+        def _cb(err: Any, msg: CMessage) -> None:
+            try:
+                if on_delivery is not None:
+                    on_delivery(err, msg)
+            finally:
+                delivered.append(msg)
+
+        return _cb
+
+    def _serialize_key(self, key: str | bytes | None, topic: str) -> bytes | None:
+        match key:
+            case str():
+                return self._key_serializer(
+                    key, SerializationContext(topic, MessageField.KEY)
+                )
+            case bytes() | None:
+                return key
+            case _:
+                raise TypeError(
+                    f"key must be str, bytes, or None, got {type(key).__name__}"
+                )
+
+    def _wait_for_delivery(self, delivered: list[CMessage], timeout: float) -> None:
+        deadline = time.monotonic() + timeout
+        while not delivered:
+            if time.monotonic() >= deadline:
+                raise KafkaException(f"Delivery timed out after {timeout}s")
+            self._producer.poll(0.1)
 
     def _to_message(
         self,
@@ -136,7 +160,7 @@ class KafkianProducer:
         return Message(
             topic=msg.topic(),
             value=value,
-            key=key.decode("utf-8") if isinstance(key, bytes) else key,
+            key=key,
             headers=(
                 {
                     k: v.decode("utf-8") if isinstance(v, bytes) else v
@@ -151,7 +175,10 @@ class KafkianProducer:
         )
 
     def flush(self, timeout: float = -1) -> int:
-        """Block until all pending messages are delivered. Returns remaining message count."""
+        """Block until all pending messages are delivered.
+
+        Returns the remaining (undelivered) message count.
+        """
         return self._producer.flush(timeout)
 
     def poll(self, timeout: float = 0) -> int:
@@ -165,6 +192,6 @@ class KafkianProducer:
                 schema_registry_client=self._sr_client,
                 schema_str=self._schema_registry.build_schema(model_cls),
                 to_dict=lambda obj, _ctx: obj.model_dump(),
-                conf=self._serializer_conf or None,
+                conf=self._serializer_conf,
             )
         return self._serializers[model_cls]
