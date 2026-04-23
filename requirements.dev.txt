@@ -1,8 +1,0 @@
--r requirements.test.txt
-
-black
-ipdb
-mypy
-isort
-flake8
-ruff

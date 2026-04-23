@@ -1,170 +1,171 @@
-import atexit
-import logging
-import socket
-import typing
+from __future__ import annotations
 
-from confluent_kafka.cimpl import KafkaError
-from confluent_kafka.cimpl import Producer as ConfluentProducer
+from collections.abc import Callable
+from typing import Any
 
-from kafkian.serde.serialization import Serializer
+from confluent_kafka import KafkaException, Producer
+from confluent_kafka import Message as CMessage
+from confluent_kafka import TIMESTAMP_NOT_AVAILABLE
+from confluent_kafka.schema_registry.avro import AvroSerializer
+from confluent_kafka.serialization import (
+    MessageField,
+    SerializationContext,
+    StringSerializer,
+)
 
-logger = logging.getLogger(__name__)
+from kafkian.base import AvroModel, Message
+from kafkian.schema_registry import SchemaRegistry
 
 
-class Producer:
+class KafkianProducer:
+    """Confluent Kafka producer that serialises AvroModel instances via Schema Registry.
+
+    Accepts an injected ``SchemaRegistry`` so callers control SR configuration.
+    On the first ``produce()`` call for each model class, dependencies are
+    auto-registered in topological order via ``SchemaRegistry.ensure_registered``.
+    ``AvroSerializer`` instances are then created and cached per model class.
+
+    Usage::
+
+        sr = SchemaRegistry(SchemaRegistryClient({"url": "http://localhost:8081"}))
+        sr.register_model(AuditModel)
+        sr.register_model(OrderCreatedModel)
+
+        producer = KafkianProducer(
+            Producer({"bootstrap.servers": "localhost:9092"}),
+            sr,
+        )
+        producer.produce("orders", order_model, key="order-123")
+        producer.flush()
     """
-    Kafka producer with configurable key/value serializers.
-
-    Does not subclass directly from Confluent's Producer,
-    since it's a cimpl and therefore not mockable.
-    """
-
-    # Default configuration. For more details, description and defaults, see
-    # https://github.com/edenhill/librdkafka/blob/master/CONFIGURATION.md
-    DEFAULT_CONFIG = {
-        "api.version.request": True,
-        "client.id": socket.gethostname(),
-        "log.connection.close": True,
-        "log.thread.name": False,
-        "acks": "all",
-        "max.in.flight": 1,
-        "enable.idempotence": True,
-        "queue.buffering.max.ms": 100,
-        "statistics.interval.ms": 15000,
-    }
 
     def __init__(
         self,
-        config: dict,
-        value_serializer=Serializer(),
-        key_serializer=Serializer(),
-        error_callback: typing.Callable | None = None,
-        delivery_success_callback: typing.Callable | None = None,
-        delivery_error_callback: typing.Callable | None = None,
-        metrics=None,
+        producer: Producer,
+        schema_registry: SchemaRegistry,
+        serializer_conf: dict[str, Any] | None = None,
     ) -> None:
-        self.value_serializer = value_serializer
-        self.key_serializer = key_serializer
-
-        self.error_callback = error_callback
-        self.delivery_success_callback = delivery_success_callback
-        self.delivery_error_callback = delivery_error_callback
-
-        self.metrics = metrics
-
-        config = {**self.DEFAULT_CONFIG, **config}
-        config["on_delivery"] = self._on_delivery
-        config["error_cb"] = self._on_error
-        config["throttle_cb"] = self._on_throttle
-        config["stats_cb"] = self._on_stats
-
-        logger.info("Initializing producer", extra=dict(config=config))
-        atexit.register(self._close)
-        self._producer_impl = self._init_producer_impl(config)
-
-    @staticmethod
-    def _init_producer_impl(config: dict[str, typing.Any]) -> ConfluentProducer:
-        return ConfluentProducer(
-            config, logger=logging.getLogger("librdkafka.producer")
-        )
-
-    def _close(self) -> None:
-        self.flush()
-
-    def flush(self, timeout: float | None = None) -> None:
-        """
-        Waits for all messages in the producer queue to be delivered
-        and calls registered callbacks
-
-        :param timeout:
-        :return:
-        """
-        logger.info("Flushing producer")
-        timeout = timeout or 1
-        self._producer_impl.flush(timeout)
-
-    def poll(self, timeout: float | None = None) -> int:
-        """
-        Polls the underlying producer for events and calls registered callbacks
-
-        :param timeout:
-        :return:
-        """
-        timeout = timeout or 1
-        return self._producer_impl.poll(timeout)
+        self._producer = producer
+        self._schema_registry = schema_registry
+        self._sr_client = schema_registry.client
+        self._serializer_conf: dict[str, Any] = serializer_conf or {}
+        self._serializers: dict[type[AvroModel], AvroSerializer] = {}
+        self._key_serializer = StringSerializer("utf_8")
 
     def produce(
         self,
         topic: str,
-        key,
-        value,
-        headers: dict[str, str] | None = None,
-        sync: bool = False,
-    ) -> None:
+        value: AvroModel,
+        *,
+        key: str | bytes | None = None,
+        partition: int | None = None,
+        on_delivery: Callable[..., None] | None = None,
+        headers: dict[str, str] | list[tuple[str, str]] | None = None,
+        wait: bool = True,
+    ) -> Message | None:
+        """Serialise *value* and produce it to *topic*.
+
+        Args:
+            topic: Destination Kafka topic.
+            value: An AvroModel instance; its class's ``_schema`` is used to
+                   locate or register the schema in Schema Registry.
+            key: Message key.  Strings are UTF-8 serialised; bytes are passed
+                 through unchanged; ``None`` produces a keyless message.
+            partition: Target partition.  Omit to use the configured partitioner.
+            on_delivery: Delivery callback ``(KafkaError | None, Message) -> None``.
+            headers: Message headers.
+            wait: Block until the broker acknowledges delivery and return a
+                  ``Message``.  When ``False``, returns ``None`` immediately
+                  after enqueuing; call :meth:`flush` or :meth:`poll` later.
         """
-        Produces (`key`, `value`) to the specified `topic`.
-        If `sync` is True, waits until the message is delivered/acked.
+        serializer = self._get_serializer(type(value))
+        serialized_value = serializer(
+            value, SerializationContext(topic, MessageField.VALUE)
+        )
 
-        Note that it does _not_ poll when sync if False.
+        serialized_key: bytes | None
+        match key:
+            case str():
+                serialized_key = self._key_serializer(
+                    key, SerializationContext(topic, MessageField.KEY)
+                )
+            case bytes() | None:
+                serialized_key = key
 
-        :param topic:
-        :param key:
-        :param value:
-        :param sync:
-        :param headers:
-        :return:
-        """
-        key = self.key_serializer.serialize(key, topic, is_key=True)
-        # If value is None, it's a "tombstone" and shall be passed through
-        if value is not None:
-            value = self.value_serializer.serialize(value, topic)
-        headers = headers or dict()
-        self._produce(topic, key, value, headers)
-        if sync:
-            self.flush()
+        kwargs: dict[str, Any] = {
+            "topic": topic,
+            "value": serialized_value,
+            "key": serialized_key,
+        }
+        if partition is not None:
+            kwargs["partition"] = partition
+        if headers is not None:
+            kwargs["headers"] = headers
 
-    def _produce(
-        self, topic: str, key, value, headers: dict[str, str], **kwargs
-    ) -> None:
-        self._producer_impl.produce(
-            topic=topic,
+        if wait:
+            delivered: list[CMessage] = []
+
+            def _delivery_cb(err: Any, msg: CMessage) -> None:
+                if on_delivery is not None:
+                    on_delivery(err, msg)
+                delivered.append(msg)
+
+            kwargs["on_delivery"] = _delivery_cb
+        elif on_delivery is not None:
+            kwargs["on_delivery"] = on_delivery
+
+        self._producer.produce(**kwargs)
+
+        if wait:
+            while not delivered:
+                self._producer.poll(0.1)
+            msg = delivered[0]
+            if msg.error():
+                raise KafkaException(msg.error())
+            return self._to_message(msg, value=value, key=key)
+        return None
+
+    def _to_message(
+        self,
+        msg: CMessage,
+        *,
+        value: AvroModel,
+        key: str | bytes | None,
+    ) -> Message:
+        ts_type, ts_ms = msg.timestamp()
+        raw_headers = msg.headers()
+        return Message(
+            topic=msg.topic(),
             value=value,
-            key=key,
-            headers=headers,
-            **kwargs,
+            key=key.decode("utf-8") if isinstance(key, bytes) else key,
+            headers=(
+                {
+                    k: v.decode("utf-8") if isinstance(v, bytes) else v
+                    for k, v in raw_headers
+                }
+                if raw_headers
+                else None
+            ),
+            timestamp_ms=ts_ms if ts_type != TIMESTAMP_NOT_AVAILABLE else None,
+            partition=msg.partition(),
+            offset=msg.offset(),
         )
 
-    def _on_delivery(self, err, msg) -> None:
-        if err:
-            logger.warning(
-                "Producer send failed",
-                extra=dict(
-                    error_message=str(err),
-                    topic=msg.topic(),
-                    key=msg.key(),
-                    partition=msg.partition(),
-                ),
+    def flush(self, timeout: float = -1) -> int:
+        """Block until all pending messages are delivered. Returns remaining message count."""
+        return self._producer.flush(timeout)
+
+    def poll(self, timeout: float = 0) -> int:
+        """Poll for delivery callbacks. Returns number of events served."""
+        return self._producer.poll(timeout)
+
+    def _get_serializer(self, model_cls: type[AvroModel]) -> AvroSerializer:
+        if model_cls not in self._serializers:
+            self._schema_registry.ensure_registered(model_cls)
+            self._serializers[model_cls] = AvroSerializer(
+                schema_registry_client=self._sr_client,
+                schema_str=self._schema_registry.build_schema(model_cls),
+                to_dict=lambda obj, _ctx: obj.model_dump(),
+                conf=self._serializer_conf or None,
             )
-            if self.delivery_error_callback:
-                self.delivery_error_callback(msg, err)
-        else:
-            logger.debug(
-                "Producer send succeeded",
-                extra=dict(topic=msg.topic(), key=msg.key(), partition=msg.partition()),
-            )
-            if self.delivery_success_callback:
-                self.delivery_success_callback(msg)
-
-    def _on_error(self, error: KafkaError) -> None:
-        logger.error(
-            error.str(), extra=dict(error_code=error.code(), error_name=error.name())
-        )
-        if self.error_callback:
-            self.error_callback(error)
-
-    def _on_throttle(self, event) -> None:
-        logger.warning("Throttle", extra=dict(throttle_event=event))
-
-    def _on_stats(self, stats):
-        if self.metrics:
-            self.metrics.send(stats)
+        return self._serializers[model_cls]

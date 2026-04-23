@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "PaymentProcessed",
+  "namespace": "com.example",
+  "doc": "Emitted when a payment attempt is resolved.",
+  "fields": [
+    {"name": "payment_id", "type": "string", "doc": "Unique payment identifier (UUID)."},
+    {"name": "order_id", "type": "string"},
+    {"name": "amount", "type": {"type": "bytes", "logicalType": "decimal", "precision": 12, "scale": 2}},
+    {"name": "status", "type": {"type": "enum", "name": "PaymentStatus", "namespace": "com.example", "symbols": ["APPROVED", "DECLINED", "PENDING"]}},
+    {"name": "audit", "type": "com.example.Audit"}
+  ]
+}

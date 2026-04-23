@@ -20,7 +20,7 @@ services:
       interval: 1m
     volumes:
       - test-zookeeper-1-data:/var/lib/zookeeper/data/
-      - test-zookeeper-1-log:/var/lib/zookeeper/log/
+      - test-zookeeper-1-logger:/var/lib/zookeeper/logger/
     restart: "always"
     deploy:
       resources:

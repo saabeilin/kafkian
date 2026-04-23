@@ -105,3 +105,8 @@ venv.bak/
 
 # IntelliJ
 .idea/
+
+skills/
+.tessl/
+CLAUDE.md
+.claude/
