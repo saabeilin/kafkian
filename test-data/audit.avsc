@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "Audit",
+  "namespace": "com.example",
+  "doc": "Audit metadata attached to every business event.",
+  "fields": [
+    {"name": "created_by", "type": "string", "doc": "Identity of the actor that triggered the event."},
+    {"name": "created_at", "type": {"type": "long", "logicalType": "timestamp-millis"}, "doc": "Wall-clock time when the event was produced."},
+    {"name": "correlation_id", "type": ["null", "string"], "default": null, "doc": "Optional trace / request ID for cross-service correlation."}
+  ]
+}

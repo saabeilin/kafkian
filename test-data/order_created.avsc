@@ -1,0 +1,13 @@
+{
+  "type": "record",
+  "name": "OrderCreated",
+  "namespace": "com.example",
+  "doc": "Emitted when a new order is placed.",
+  "fields": [
+    {"name": "order_id", "type": "string", "doc": "Unique order identifier (UUID)."},
+    {"name": "customer_id", "type": "string"},
+    {"name": "total_amount", "type": {"type": "bytes", "logicalType": "decimal", "precision": 12, "scale": 2}},
+    {"name": "currency", "type": "string", "default": "USD"},
+    {"name": "audit", "type": "com.example.Audit"}
+  ]
+}

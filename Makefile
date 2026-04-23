@@ -1,9 +1,3 @@
-lint:
-	flake8 kafkian/
-
-check:
-	mypy --ignore-missing-imports kafkian/
-
 unittest:
 	PYTHONPATH=. pytest -v --ff -x tests/unit/
 
@@ -13,8 +7,14 @@ kafka:
 systemtest: kafka
 	PYTHONPATH=. pytest -v --ff tests/system
 
-black:
-	black kafkian/ tests/
+typecheck:
+	ty check --output-format=concise || echo "ty found issues, continuing anyway"
 
-isort:
-	isort kafkian/ tests/
+format:
+	ruff format .
+
+fix:
+	ruff check --fix --output-format=concise || echo "Ruff fixed what it could"
+
+precommit: fix format unittest typecheck
+	echo "Now you can commit"

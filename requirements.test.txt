@@ -1,6 +1,0 @@
-codecov
-pytest~=8.2.2
-pytest-mock
-pytest-sugar
-coverage~=7.5.3
-pytest-cov~=5.0.0
