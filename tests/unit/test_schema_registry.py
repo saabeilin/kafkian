@@ -378,10 +378,10 @@ def test_ensure_registered_auto_registers_known_dep(
     assert result == 10
     # Both subjects registered
     subjects = [c.args[0] for c in mock_client.register_schema.call_args_list]
-    assert "AuditModel-value" in subjects
+    assert "Audit-value" in subjects
     assert "OrderWithAutoAuditModel-value" in subjects
     # Audit registered before the referencing schema
-    assert subjects.index("AuditModel-value") < subjects.index(
+    assert subjects.index("Audit-value") < subjects.index(
         "OrderWithAutoAuditModel-value"
     )
 
@@ -403,6 +403,6 @@ def test_ensure_registered_dep_not_registered_twice(
     audit_calls = [
         c
         for c in mock_client.register_schema.call_args_list
-        if c.args[0] == "AuditModel-value"
+        if c.args[0] == "Audit-value"
     ]
     assert len(audit_calls) == 1

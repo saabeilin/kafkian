@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, cast
 
 from confluent_kafka.schema_registry import (
     Schema,
@@ -17,7 +17,8 @@ _SCHEMA_NOT_FOUND = 40403
 
 
 def _default_subject(model_cls: type[AvroModel]) -> str:
-    return f"{model_cls.__name__}-value"
+    name: str = model_cls._schema.get("name", model_cls.__name__)
+    return f"{_simple_name(name)}-value"
 
 
 def _resolve_references(
@@ -60,7 +61,8 @@ class SchemaRegistry:
     call it lazily on first produce.  Dependencies are registered recursively
     in topological order; re-registration is skipped via an in-memory cache.
 
-    Subject defaults to ``{ModelClassName}-value``; pass an explicit *subject* or
+    Subject defaults to ``{AvroSchemaName}-value`` (the simple name from the
+    schema's ``name`` field, without namespace); pass an explicit *subject* or
     *reference_subjects* override when a different naming convention is in use.
 
     Usage::
@@ -172,14 +174,25 @@ class SchemaRegistry:
         for dep_name in sorted(find_named_deps(model_cls._schema)):
             dep_cls = self._model_registry.get(dep_name)
             if dep_cls is not None and dep_cls is not model_cls:
-                self.ensure_registered(dep_cls)
+                dep_subject: str | None = None
+                if reference_subjects is not None:
+                    dep_subject = reference_subjects.get(
+                        dep_name
+                    ) or reference_subjects.get(_simple_name(dep_name))
+                self.ensure_registered(
+                    dep_cls,
+                    subject=dep_subject,
+                    reference_subjects=reference_subjects,
+                )
 
         schema = self.build_schema(model_cls, reference_subjects)
         try:
-            schema_id = self._client.lookup_schema(resolved, schema).schema_id
+            schema_id: int = cast(
+                int, self._client.lookup_schema(resolved, schema).schema_id
+            )
         except SchemaRegistryError as exc:
             if exc.error_code == _SCHEMA_NOT_FOUND:
-                schema_id = self._client.register_schema(resolved, schema)
+                schema_id = cast(int, self._client.register_schema(resolved, schema))
             else:
                 raise
         self._registered[resolved] = schema_id
